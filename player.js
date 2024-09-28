@@ -2,7 +2,7 @@
 class Player {
 
     static ID = 0;
-    static WIDTH = 20;
+    static WIDTH = 22;
     static HEIGHT = 45;
     static CORNER = 5;
 

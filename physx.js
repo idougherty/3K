@@ -456,7 +456,7 @@ class PhysCircle extends PhysObject {
 
 class PhysEnv {
 
-    constructor(objects) {
+    constructor(objects = []) {
         this.objects = [];
         this.intervals = [];
         this.sweepX = true;

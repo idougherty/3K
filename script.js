@@ -99,7 +99,7 @@ function initPhys() {
         other.vel = normal.mult(400);
     }
 
-    for(let i = 0; i < 100; i++) {
+    for(let i = 0; i < 0; i++) {
 
         const MATERIAL_SUPERBALL = {
             density: .1,
@@ -155,6 +155,8 @@ function drawLoop() {
 
     window.requestAnimationFrame(drawLoop);
 }
+
+let game = new Game();
 
 initPhys();
 drawLoop();

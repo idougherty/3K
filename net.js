@@ -74,19 +74,19 @@ class Net {
     initNet(c_pos) {
 
         const MATERIAL_NET = {
-            density: 1,
+            density: 0.7,
             restitution: 1,
-            sFriction: .6,
-            dFriction: .3,
+            sFriction: .2,
+            dFriction: .2,
             color: "#eee0",
         }
 
         const netShape = [
             { width: 1, height: 0.4 },
             { width: 0.7, height: 0.2 },
-            { width: 0.7, height: 0.15 },
             { width: 0.6, height: 0.15 },
             { width: 0.6, height: 0.15 },
+            { width: 0.5, height: 0.15 },
             { width: 0.6, height: 0.1 },
         ]
     
@@ -102,7 +102,7 @@ class Net {
                 let x = c_pos.x - w/2 + colIdx * w / (num_points - 1);
 
                 let pos = new Vec2D(x, y);
-                let point = new PhysCircle(pos, 2, MATERIAL_NET);
+                let point = new PhysCircle(pos, 3, MATERIAL_NET);
                 
                 if(rowIdx == 0)
                     point.mass = Infinity;
@@ -162,7 +162,7 @@ class Net {
     
         const projA = normal.mult(A.vel.dot(normal));
         const projB = normal.mult(B.vel.dot(normal));
-        const impulse = projA.subRet(projB).mult(0.1);
+        const impulse = projA.subRet(projB).mult(0.05);
         const totalMass = B.mass + A.mass;
     
         A.vel.sub(impulse.mult(B.mass / totalMass));

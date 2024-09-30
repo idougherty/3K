@@ -3,43 +3,42 @@ class Goal {
     static RIM_WDTH = 45;
 
     constructor(env, pos, dir = 1) {
-
         const MATERIAL_BBOARD = {
             density: Infinity,
             restitution: 0.8,
-            sFriction: .2,
-            dFriction: .1,
+            s_friction: .2,
+            d_friction: .1,
             color: "#eee",
         };
 
         const MATERIAL_RIM = {
             density: Infinity,
             restitution: 0.7,
-            sFriction: .2,
-            dFriction: .1,
+            s_friction: .2,
+            d_friction: .1,
             color: "#ea6",
         };
 
-        let boardShape = [
+        let board_shape = [
             new Vec2D(0,  0),
             new Vec2D(0,  100),
             new Vec2D(15, 100),
             new Vec2D(15, 0),
         ];
     
-        this.backboard = new PhysPolygon(pos, boardShape, MATERIAL_BBOARD);
-        env.addObject(this.backboard);
+        this.backboard = new PhysPolygon(pos, board_shape, MATERIAL_BBOARD);
+        env.add_object(this.backboard);
     
-        let rimPos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH) * dir, pos.y + 35);
-        this.f_rim = new PhysCircle(rimPos, 5, MATERIAL_RIM);
-        env.addObject(this.f_rim);
+        let rim_pos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH) * dir, pos.y + 35);
+        this.f_rim = new PhysCircle(rim_pos, 5, MATERIAL_RIM);
+        env.add_object(this.f_rim);
     
-        rimPos = new Vec2D(pos.x + 20 * dir, pos.y + 35);
-        this.b_rim = new PhysCircle(rimPos, 5, MATERIAL_RIM);
-        env.addObject(this.b_rim);
+        rim_pos = new Vec2D(pos.x + 20 * dir, pos.y + 35);
+        this.b_rim = new PhysCircle(rim_pos, 5, MATERIAL_RIM);
+        env.add_object(this.b_rim);
 
-        let netPos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH / 2) * dir, pos.y + 35);
-        this.net = new Net(env, netPos);
+        let net_pos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH / 2) * dir, pos.y + 35);
+        this.net = new Net(env, net_pos);
     }
 
     step() {
@@ -62,26 +61,26 @@ class Net {
     points = [];
     links = [];
 
-    constructor(env, c_pos) {
+    constructor(env, base_pos) {
 
         this.width = 5;
         this.height = 6;
 
-        this.initNet(c_pos);
+        this.init_net(env, base_pos);
     
     }
 
-    initNet(c_pos) {
+    init_net(env, base_pos) {
 
         const MATERIAL_NET = {
             density: 0.7,
             restitution: 1,
-            sFriction: .2,
-            dFriction: .2,
+            s_friction: .2,
+            d_friction: .2,
             color: "#eee0",
         }
 
-        const netShape = [
+        const net_shape = [
             { width: 1, height: 0.4 },
             { width: 0.7, height: 0.2 },
             { width: 0.6, height: 0.15 },
@@ -90,36 +89,36 @@ class Net {
             { width: 0.6, height: 0.1 },
         ]
     
-        let y = c_pos.y;
+        let y = base_pos.y;
 
-        for(let rowIdx = 0; rowIdx < netShape.length; rowIdx++) {
-            let num_points = rowIdx % 2 == 0 ? this.width : this.width - 1;
+        for(let row_idx = 0; row_idx < net_shape.length; row_idx++) {
+            let num_points = row_idx % 2 == 0 ? this.width : this.width - 1;
             let row = [];
-            let rowShape = netShape[rowIdx];
+            let row_shape = net_shape[row_idx];
 
-            for(let colIdx = 0; colIdx < num_points; colIdx++) {
-                const w = Goal.RIM_WDTH * rowShape.width;
-                let x = c_pos.x - w/2 + colIdx * w / (num_points - 1);
+            for(let col_idx = 0; col_idx < num_points; col_idx++) {
+                const w = Goal.RIM_WDTH * row_shape.width;
+                let x = base_pos.x - w/2 + col_idx * w / (num_points - 1);
 
                 let pos = new Vec2D(x, y);
                 let point = new PhysCircle(pos, 3, MATERIAL_NET);
                 
-                if(rowIdx == 0)
+                if(row_idx == 0)
                     point.mass = Infinity;
                 point.moi = Infinity;
 
-                const isCorporeal = colIdx != 0 && colIdx != num_points - 1;
+                const is_corporeal = col_idx != 0 && col_idx != num_points - 1;
 
-                if(isCorporeal) {
-                    point.onCollision = this.corporealFunc;
+                if(is_corporeal) {
+                    point.on_collision = this.corporeal_func;
                     point.masks.push("ball-net")
                 }
                 
-                env.addObject(point);
+                env.add_object(point);
                 row.push(point);
             }
 
-            y += Goal.RIM_WDTH * rowShape.height;
+            y += Goal.RIM_WDTH * row_shape.height;
             this.points.push(row);
         }
 
@@ -136,54 +135,54 @@ class Net {
                 if(x + prev_offset >= 0) {
                     let B = this.points[y-1][x + prev_offset];
                     
-                    const targetDist = Vec2D.mag(Vec2D.dif(A.pos, B.pos));
-                    const link = { A, B, targetDist }
+                    const target_dist = Vec2D.mag(Vec2D.sub(A.pos, B.pos));
+                    const link = { A, B, target_dist }
                     this.links.push(link);
-
                 }
                 
                 if(x + prev_offset + 1 < this.points[y-1].length) {
                     let B = this.points[y-1][x + prev_offset + 1];
 
-                    const targetDist = Vec2D.mag(Vec2D.dif(A.pos, B.pos));
-                    const link = { A, B, targetDist }
+                    const target_dist = Vec2D.mag(Vec2D.sub(A.pos, B.pos));
+                    const link = { A, B, target_dist }
                     this.links.push(link);
                 }
             }
         }
     }
 
-    corporealFunc(A, B) {
+    corporeal_func(A, B) {
         if(B.tag != "ball" || A.mass == Infinity)
             return;
 
-        let vec = Vec2D.dif(B.pos, A.pos);
+        let vec = Vec2D.sub(B.pos, A.pos);
         let normal = Vec2D.normalize(vec);
     
-        const projA = normal.mult(A.vel.dot(normal));
-        const projB = normal.mult(B.vel.dot(normal));
-        const impulse = projA.subRet(projB).mult(0.05);
-        const totalMass = B.mass + A.mass;
+        const corporeal_strength = 0.07;
+        const proj_a = Vec2D.mult(normal, A.vel.dot(normal));
+        const proj_b = Vec2D.mult(normal, B.vel.dot(normal));
+        const impulse = Vec2D.sub(proj_b, proj_a).mult(corporeal_strength);
+        const total_mass = B.mass + A.mass;
     
-        A.vel.sub(impulse.mult(B.mass / totalMass));
-        B.vel.add(impulse.mult(A.mass / totalMass));
+        A.vel.sub(Vec2D.mult(impulse, B.mass / total_mass));
+        B.vel.add(Vec2D.mult(impulse, A.mass / total_mass));
     }
 
-    applyConstraint({A, B, targetDist}) {
-        let vec = Vec2D.dif(B.pos, A.pos);
+    apply_constraint({A, B, target_dist}) {
+        let vec = Vec2D.sub(B.pos, A.pos);
         let normal = Vec2D.normalize(vec);
         let dist = Vec2D.mag(vec);
     
-        if(dist < targetDist)
+        if(dist < target_dist)
             return;
+        
+        const proj_a = Vec2D.mult(normal, A.vel.dot(normal));
+        const proj_b = Vec2D.mult(normal, B.vel.dot(normal));
+        const impulse = Vec2D.sub(proj_b, proj_a);
     
-        const projA = normal.mult(A.vel.dot(normal));
-        const projB = normal.mult(B.vel.dot(normal));
-        const impulse = projA.subRet(projB);
-    
-        const percent = 0.5;
-        const correction = Math.max(dist - targetDist, 0) * percent;
-        const totalMass = A.mass + B.mass;
+        const percent = 0.8;
+        const correction = Math.max(dist - target_dist, 0) * percent;
+        const total_mass = A.mass + B.mass;
     
         if(A.mass == Infinity && B.mass == Infinity) {
             return;
@@ -198,35 +197,21 @@ class Net {
             
             A.vel.sub(impulse);
         } else {
-            A.pos.x -= normal.x * correction * B.mass / totalMass;
-            A.pos.y -= normal.y * correction * B.mass / totalMass;
+            A.pos.x -= normal.x * correction * B.mass / total_mass;
+            A.pos.y -= normal.y * correction * B.mass / total_mass;
     
-            B.pos.x += normal.x * correction * A.mass / totalMass;
-            B.pos.y += normal.y * correction * A.mass / totalMass;
+            B.pos.x += normal.x * correction * A.mass / total_mass;
+            B.pos.y += normal.y * correction * A.mass / total_mass;
             
-            A.vel.sub(impulse.mult(B.mass / totalMass));
-            B.vel.add(impulse.mult(A.mass / totalMass));
+            A.vel.sub(Vec2D.mult(impulse, B.mass / total_mass));
+            B.vel.add(Vec2D.mult(impulse, A.mass / total_mass));
         }
     }
 
     step() {
         for(let i = 0; i < 5; i++) {
             for(const link of this.links) {
-                this.applyConstraint(link);
-            }
-        }
-
-        for(const row of this.points) {
-            for(const point of row) {
-                if(point.mass == Infinity)
-                    continue;
-
-                let gravity = {
-                    pos: point.pos,
-                    dir: new Vec2D(0, point.mass * 250),
-                };
-        
-                point.applyForce(gravity);
+                this.apply_constraint(link);
             }
         }
     }

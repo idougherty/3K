@@ -8,10 +8,9 @@ function clip(v1, v2, n, o) {
     if(d2 >= 0) points.push(v2);
 
     if(d1 * d2 < 0) {
-        let e = Vec2D.dif(v1, v2);
+        let e = Vec2D.sub(v1, v2);
         const u = d1 / (d1 - d2);
-        e = e.mult(u);
-        e.add(v1);
+        e.mult(u).add(v1);
 
         points.push(e);
     }
@@ -27,7 +26,7 @@ function debugLine(p1, p2, ctx, color = "red") {
     ctx.stroke();
 }
 
-function insertionSort(arr, lambda = (x) => x) {
+function insertion_sort(arr, lambda = (x) => x) {
     let val, j, i;
     for(i = 1; i < arr.length; i++) {
         val = arr[i];
@@ -41,10 +40,10 @@ function insertionSort(arr, lambda = (x) => x) {
     }
 }
 
-function minkowskiDifSupport(s1, s2, d) {
-    let support1 = s1.getSupport(d);
-    let support2 = s2.getSupport(d.mult(-1));
-    return Vec2D.dif(support2, support1);
+function minkowski_dif_support(s1, s2, d) {
+    let support1 = s1.get_support(d);
+    let support2 = s2.get_support(Vec2D.mult(d, -1));
+    return Vec2D.sub(support2, support1);
 }
 
 function mean(arr) {
@@ -65,7 +64,7 @@ function variance(arr) {
     return variance / arr.length;
 }
 
-function calculateMassAndMoi(shape, material) {
+function calc_mass_and_moi(shape, material) {
     if(material.density == Infinity)
         return [Infinity, Infinity];
 
@@ -81,42 +80,40 @@ function calculateMassAndMoi(shape, material) {
         const a = shape[prev];
         const b = shape[cur];
 
-        const areaStep = Math.abs(Vec2D.cross(a, b) / 2);
-        const massStep = areaStep * material.density;
-        const centerStep = a.addRet(b).div(3);
-        const moiStep = massStep / 6 * (a.dot(a) + b.dot(b) + a.dot(b));
+        const area_step = Math.abs(Vec2D.cross(a, b) / 2);
+        const mass_step = area_step * material.density;
+        const center_step = Vec2D.add(a, b).div(3);
+        const moi_step = mass_step / 6 * (a.dot(a) + b.dot(b) + a.dot(b));
 
-        mass += massStep
-        center.add(centerStep);
-        moi += moiStep;
+        mass += mass_step
+        center.add(center_step);
+        moi += moi_step;
     }
 
-    const moiScalar = 1;
-
-    return [mass, moi * moiScalar];
+    return [mass, moi];
 }
 
 const MATERIAL_WOOD = {
     density: 1,
     restitution: .4,
-    sFriction: .3,
-    dFriction: .2,
+    s_friction: .3,
+    d_friction: .2,
     color: "#a98",
 };
 
 const MATERIAL_RUBBER = {
     density: 2.5,
     restitution: .95,
-    sFriction: .6,
-    dFriction: .4,
+    s_friction: .6,
+    d_friction: .4,
     color: "#a75",
 };
 
 const MATERIAL_WALL = {
     density: Infinity,
     restitution: .5,
-    sFriction: .4,
-    dFriction: .2,
+    s_friction: .4,
+    d_friction: .2,
     color: "#eee",
 };
 
@@ -143,14 +140,30 @@ class Vec2D {
         return new Vec2D(vec.x / mag, vec.y / mag);
     }
 
-    static dif(v1, v2) {
-        return new Vec2D(v2.x - v1.x, v2.y - v1.y);
+    static add(A, B) {
+        if(B.x != undefined && B.y != undefined)
+            return new Vec2D(A.x + B.x, A.y + B.y);
+        return new Vec2D(A.x + B, A.y + B);
     }
 
-    static tripleProd(v1, v2, v3) {
-        const k = v1.x * v2.y - v1.y * v2.x;
-        const nx = -v3.y * k;
-        const ny = v3.x * k;
+    static sub(A, B) {
+        if(B.x != undefined && B.y != undefined)
+            return new Vec2D(B.x - A.x, B.y - A.y);
+        return new Vec2D(A.x - B, A.y - B);
+    }
+
+    static mult(vec, num) {
+        return new Vec2D(vec.x * num, vec.y * num);
+    }
+
+    static div(vec, num) {
+        return new Vec2D(vec.x / num, vec.y / num);
+    }
+
+    static triple_prod(A, B, C) {
+        const k = A.x * B.y - A.y * B.x;
+        const nx = -C.y * k;
+        const ny = C.x * k;
         return new Vec2D(nx, ny, 0);
     }
 
@@ -175,32 +188,25 @@ class Vec2D {
     add(other) {
         this.x += other.x;
         this.y += other.y;
+        return this;
     }
 
     sub(other) {
         this.x -= other.x;
         this.y -= other.y;
-    }
-
-    scale(num) {
-        this.x *= num;
-        this.y *= num;
-    }
-    
-    addRet(other) {
-        return new Vec2D(this.x + other.x, this.y + other.y);
-    }
-
-    subRet(other) {
-        return new Vec2D(this.x - other.x, this.y - other.y);
+        return this;
     }
 
     mult(num) {
-        return new Vec2D(this.x * num, this.y * num);
+        this.x *= num;
+        this.y *= num;
+        return this;
     }
 
     div(num) {
-        return new Vec2D(this.x / num, this.y / num);
+        this.x /= num;
+        this.y /= num;
+        return this;
     }
 
     dot(other) {
@@ -210,7 +216,7 @@ class Vec2D {
 
 class AABB {
 
-    static findAABB(obj) {
+    static find_bounds(obj) {
         let b = new Vec2D(Infinity, Infinity);
         let e = new Vec2D(-Infinity, -Infinity);
 
@@ -259,8 +265,8 @@ class PhysObject {
         this.pos = pos;
 
         this.torque = 0;
-        this.rotAcc = 0;
-        this.rotVel = 0;
+        this.rot_acc = 0;
+        this.rot_vel = 0;
         this.angle = 0;
 
         this.material = material;
@@ -269,36 +275,34 @@ class PhysObject {
         this.moi = moi;
 
         this.masks = [];
-        this.onCollision = null;
+        this.on_collision = null;
         this.tag = "";
     }
 
     // a force consists of a position vector and a direction vector
-    applyForce(force) {
+    apply_force(force) {
         const r = new Vec2D(force.pos.x - this.pos.x, force.pos.y - this.pos.y);
 
         this.force.add(force.dir);
         this.torque += r.x * force.dir.y - r.y * force.dir.x;
     }
 
-    stepForces(dt) {
-        this.acc = this.force.div(this.mass);
+    step_forces(dt) {
+        this.acc = Vec2D.div(this.force, this.mass);
         
         if(this.mass == 0)
             this.acc = new Vec2D(0, 0);
         
-        this.vel.add(this.acc.mult(dt));
+        this.vel.add(Vec2D.mult(this.acc, dt));
+        this.pos.add(Vec2D.mult(this.vel, dt));
         
-        this.pos.add(this.vel.mult(dt));
-        
-        this.rotAcc = this.torque / this.moi;
+        this.rot_acc = this.torque / this.moi;
 
         if(this.moi == 0)
-            this.rotAcc = 0;
+            this.rot_acc = 0;
         
-        this.rotVel += this.rotAcc * dt;
-
-        this.angle += this.rotVel * dt;
+        this.rot_vel += this.rot_acc * dt;
+        this.angle += this.rot_vel * dt;
 
         this.force = new Vec2D(0, 0);
         this.torque = 0;
@@ -307,7 +311,7 @@ class PhysObject {
 
 class PhysPolygon extends PhysObject {
 
-    static findCOM(points) {
+    static find_com(points) {
         let COM = new Vec2D(0, 0);
         
         for(const point of points) {
@@ -320,7 +324,7 @@ class PhysPolygon extends PhysObject {
         return COM;
     }
 
-    static rotateShape(shape, pos, angle) {
+    static rotate_shape(shape, pos, angle) {
         let points = [];
 
         for(let i = 0; i < shape.length; i++) {
@@ -333,20 +337,20 @@ class PhysPolygon extends PhysObject {
 
     constructor(pos, points, material = MATERIAL_WOOD) {
 
-        const center = PhysPolygon.findCOM(points);
+        const center = PhysPolygon.find_com(points);
         points.forEach((p) => p.sub(center));
         let shape = points;
 
-        const [mass, moi] = calculateMassAndMoi(shape, material);
+        const [mass, moi] = calc_mass_and_moi(shape, material);
 
         super(pos, mass, moi, material);
 
         this.shape = shape;
-        this.points = PhysPolygon.rotateShape(shape, this.pos, this.angle);
-        this.AABB = AABB.findAABB(this);
+        this.points = PhysPolygon.rotate_shape(shape, this.pos, this.angle);
+        this.AABB = AABB.find_bounds(this);
     }
 
-    getSupport(d) {
+    get_support(d) {
         let furthest = null;
         let dot = -Infinity;
     
@@ -361,7 +365,7 @@ class PhysPolygon extends PhysObject {
         return furthest;
     }
 
-    findCollisionEdge(normal) {
+    find_collision_edge(normal) {
         let v = null;
         let idx = null;
         let dot = -Infinity;
@@ -378,10 +382,10 @@ class PhysPolygon extends PhysObject {
         const v0 = this.points[(idx - 1 + this.points.length) % this.points.length];
         const v1 = this.points[(idx + 1) % this.points.length];
 
-        const leftEdge = Vec2D.dif(v, v0);
-        const rightEdge = Vec2D.dif(v, v1);
+        const left_edge = Vec2D.sub(v, v0);
+        const right_edge = Vec2D.sub(v, v1);
 
-        if(Vec2D.normalize(rightEdge).dot(normal) <= Vec2D.normalize(leftEdge).dot(normal)) {
+        if(Vec2D.normalize(right_edge).dot(normal) <= Vec2D.normalize(left_edge).dot(normal)) {
             return [v, [v0, v]];
         } else {
             return [v, [v, v1]];
@@ -389,7 +393,7 @@ class PhysPolygon extends PhysObject {
     }
 
     update() {
-        this.points = PhysPolygon.rotateShape(this.shape, this.pos, this.angle);
+        this.points = PhysPolygon.rotate_shape(this.shape, this.pos, this.angle);
         this.AABB.update(this);
     }
 
@@ -409,7 +413,7 @@ class PhysPolygon extends PhysObject {
 
 class PhysCircle extends PhysObject {
 
-    static updateAABB(AABB, pos, radius) {
+    static update_bounding_box(AABB, pos, radius) {
         AABB.b.x = pos.x - radius;
         AABB.b.y = pos.y - radius;
         AABB.e.x = pos.x + radius;
@@ -425,22 +429,20 @@ class PhysCircle extends PhysObject {
         
         this.radius = radius;
         this.AABB = new AABB(new Vec2D(0, 0), new Vec2D(0, 0));
-        PhysCircle.updateAABB(this.AABB, this.pos, this.radius);
+        PhysCircle.update_bounding_box(this.AABB, this.pos, this.radius);
     }
 
-    getSupport(d) {
-        let dir = d.mult(this.radius);
-        dir.add(this.pos);
-        return dir;
+    get_support(d) {
+        return Vec2D.mult(d, this.radius).add(this.pos);
     }
 
-    findCollisionEdge(normal) {
-        let contact = this.getSupport(normal);
+    find_collision_edge(normal) {
+        let contact = this.get_support(normal);
         return [contact, null]
     }
 
     update() {
-        PhysCircle.updateAABB(this.AABB, this.pos, this.radius);
+        PhysCircle.update_bounding_box(this.AABB, this.pos, this.radius);
     }
 
     draw(ctx) {
@@ -459,14 +461,14 @@ class PhysEnv {
     constructor(objects = []) {
         this.objects = [];
         this.intervals = [];
-        this.sweepX = true;
+        this.sweep_x = true;
 
         for(const obj of objects) {
-            this.addObject(obj);
+            this.add_object(obj);
         }
     }
 
-    addObject(obj) {
+    add_object(obj) {
         let start = [obj.AABB.b, this.objects.length];
         let end = [obj.AABB.e, this.objects.length];
         
@@ -474,7 +476,7 @@ class PhysEnv {
         this.objects.push(obj);
     }
 
-    removeObject(obj) {
+    remove_object(obj) {
         let idx = -1;
         
         for(let i = 0; i < this.objects.length; i++) {
@@ -494,127 +496,105 @@ class PhysEnv {
         }
     }
 
-    clearObjects() {
+    clear_objects() {
         this.objects = [];
         this.intervals = [];
     }
 
-    sweepAndPrune() {
+    sweep_and_prune() {
         let overlaps = [];
-        let activeObjects = {};
+        let active_objects = {};
 
-        if(this.sweepX) {
-            insertionSort(this.intervals, (x) => x[0].x);
+        if(this.sweep_x) {
+            insertion_sort(this.intervals, (x) => x[0].x);
         } else {
-            insertionSort(this.intervals, (x) => x[0].y);
+            insertion_sort(this.intervals, (x) => x[0].y);
         }
 
         for(let i = this.intervals.length - 1; i >= 0; i--) {
             const node = this.intervals[i];
-            if(activeObjects[node[1]] != null) {
-                delete activeObjects[node[1]];
+            if(active_objects[node[1]] != null) {
+                delete active_objects[node[1]];
             } else {
-                for(const key in activeObjects) {
-                    overlaps.push([this.objects[node[1]], this.objects[activeObjects[key]]]);
+                for(const key in active_objects) {
+                    overlaps.push([this.objects[node[1]], this.objects[active_objects[key]]]);
                 }
 
-                activeObjects[node[1]] = node[1];
+                active_objects[node[1]] = node[1];
             }
         }
-
-        // for(const node of this.intervals) {
-        //     if(activeObjects[node[1]] != null) {
-        //         delete activeObjects[node[1]];
-        //     } else {
-        //         for(const key in activeObjects) {
-        //             overlaps.push([this.objects[node[1]], this.objects[activeObjects[key]]]);
-        //         }
-
-        //         activeObjects[node[1]] = node[1];
-        //     }
-        // }
 
         return overlaps;
     }
 
-    update(dt, ctx) {
-        this.stepForces(dt);
+    update(dt) {
+        this.step_forces(dt);
         for(let i = 0; i < 5; i++) {
-            this.detectCollisions(ctx);
+            this.detect_collisions();
         }
     }
 
-    stepForces(dt) {
+    step_forces(dt) {
         for(const obj of this.objects) {
-            obj.stepForces(dt);
+            obj.step_forces(dt);
             obj.update();
         }
     }
 
-    detectCollisions(ctx) {
+    detect_collisions() {
         let simplex = [];
-        let possibleCollisions = this.sweepAndPrune();
-        for(let [s1, s2] of possibleCollisions) {
-            if((simplex = this.GJK(s1, s2)) != false) {
+        for(let [s1, s2] of this.sweep_and_prune()) {
+            if(!(simplex = this.GJK(s1, s2)))
+                continue;
 
-                let masked = false;
+            let masked = false;
 
-                for(let i = 0; i < s1.masks.length; i++) {
-                    for(let j = 0; j < s2.masks.length; j++) {
-                        if(s1.masks[i] == s2.masks[j]) {
-                            masked = true;
-                            
-                            i = s1.masks.length;
-                            j = s2.masks.length;
-                        }
+            for(let i = 0; i < s1.masks.length; i++) {
+                for(let j = 0; j < s2.masks.length; j++) {
+                    if(s1.masks[i] == s2.masks[j]) {
+                        masked = true;
+                        
+                        i = s1.masks.length;
+                        j = s2.masks.length;
                     }
                 }
-
-                let normal, depth, contacts;
-
-                if(s1 instanceof PhysCircle && s2 instanceof PhysCircle) {
-                    normal = Vec2D.normalize(Vec2D.dif(s1.pos, s2.pos));
-                    let contact = s1.pos.addRet(normal.mult(s1.radius));
-                    depth = s2.radius - Vec2D.mag(Vec2D.dif(s2.pos, contact));
-                    contacts = [contact];
-                } else {
-                    [normal, depth] = this.EPA(s1, s2, simplex);
-                    contacts = this.findContacts(s1, s2, normal, ctx);
-                }
-
-                let collisionInfoA = {
-                    normal, depth, contacts
-                };
-
-                let collisionInfoB = {
-                    normal: normal.mult(-1), depth, contacts
-                };
-
-                if(s1.onCollision) s1.onCollision(s1, s2, collisionInfoA);
-                if(s2.onCollision) s2.onCollision(s2, s1, collisionInfoB);
-
-                if(s1.mass == 0 || s2.mass == 0)
-                    continue;
-                if(masked)
-                    continue;
-
-
-                for(const contact of contacts)
-                    this.applyImpulses(s1, s2, normal, contact);
-
-                this.resolveIntersections(s1, s2, normal, depth);
-
-                s1.update();
-                s2.update();
             }
+
+            let normal, depth, contacts;
+
+            if(s1 instanceof PhysCircle && s2 instanceof PhysCircle) {
+                normal = Vec2D.normalize(Vec2D.sub(s1.pos, s2.pos));
+                let contact = Vec2D.add(s1.pos, Vec2D.mult(normal, s1.radius));
+                depth = s2.radius - Vec2D.mag(Vec2D.sub(s2.pos, contact));
+                contacts = [contact];
+            } else {
+                [normal, depth] = this.EPA(s1, s2, simplex);
+                contacts = this.find_contacts(s1, s2, normal);
+            }
+
+            if(s1.on_collision) s1.on_collision(s1, s2, normal);
+            if(s2.on_collision) s2.on_collision(s2, s1, Vec2D.mult(normal, -1));
+
+            if(s1.mass == 0 || s2.mass == 0)
+                continue;
+            if(masked)
+                continue;
+
+            for(const contact of contacts)
+                this.apply_impulses(s1, s2, normal, contact);
+
+            this.resolve_intersections(s1, s2, normal, depth);
+
+            s1.update();
+            s2.update();
         }
     }
 
-    resolveIntersections(s1, s2, normal, depth) {
+    resolve_intersections(s1, s2, normal, depth) {
         const slop = .1;
-        const percent = .95;
+        const percent = .98;
         const correction = Math.max(depth - slop, 0) * percent;
-        const totalMass = s1.mass + s2.mass;
+        const total_mass = s1.mass + s2.mass;
 
         if(s1.mass == Infinity && s2.mass == Infinity) {
             return;
@@ -625,74 +605,73 @@ class PhysEnv {
             s1.pos.x -= normal.x * correction;
             s1.pos.y -= normal.y * correction;
         } else {
-            s1.pos.x -= normal.x * correction * s2.mass / totalMass;
-            s1.pos.y -= normal.y * correction * s2.mass / totalMass;
+            s1.pos.x -= normal.x * correction * s2.mass / total_mass;
+            s1.pos.y -= normal.y * correction * s2.mass / total_mass;
             
-            s2.pos.x += normal.x * correction * s1.mass / totalMass;
-            s2.pos.y += normal.y * correction * s1.mass / totalMass;
+            s2.pos.x += normal.x * correction * s1.mass / total_mass;
+            s2.pos.y += normal.y * correction * s1.mass / total_mass;
         }
     }
 
-    applyImpulses(s1, s2, normal, contact) {
-        const r1 = Vec2D.dif(s1.pos, contact);
-        const v1 = s1.vel.addRet(Vec2D.cross(s1.rotVel, r1));
+    apply_impulses(s1, s2, normal, contact) {
+        const r1 = Vec2D.sub(s1.pos, contact);
+        const v1 = Vec2D.add(s1.vel, Vec2D.cross(s1.rot_vel, r1));
 
-        const r2 = Vec2D.dif(s2.pos, contact);
-        const v2 = s2.vel.addRet(Vec2D.cross(s2.rotVel, r2));
+        const r2 = Vec2D.sub(s2.pos, contact);
+        const v2 = Vec2D.add(s2.vel, Vec2D.cross(s2.rot_vel, r2));
 
-        const abVel = Vec2D.dif(v1, v2);
-        const contactVel = abVel.dot(normal);
+        const ab_vel = Vec2D.sub(v1, v2);
+        const contact_vel = ab_vel.dot(normal);
 
-        if(contactVel >= 0)
+        if(contact_vel >= 0)
             return;
 
-        const armA = Vec2D.cross(r1, normal);
-        const armB = Vec2D.cross(r2, normal);
+        const arm_a = Vec2D.cross(r1, normal);
+        const arm_b = Vec2D.cross(r2, normal);
 
-        // const rest = Math.min(s1.material.restitution, s2.material.restitution);
         const rest = s1.material.restitution * s2.material.restitution;
 
-        const m = 1 / s1.mass + 1 / s2.mass + armA * armA / s1.moi + armB * armB / s2.moi; 
-        const j = (-(rest + 1) * contactVel) / m;
-        const impulse = normal.mult(j);
+        const m = 1 / s1.mass + 1 / s2.mass + arm_a * arm_a / s1.moi + arm_b * arm_b / s2.moi; 
+        const j = (-(rest + 1) * contact_vel) / m;
+        const impulse = Vec2D.mult(normal, j);
 
-        s1.vel.sub(impulse.div(s1.mass));
-        s2.vel.add(impulse.div(s2.mass));
+        s1.vel.sub(Vec2D.div(impulse, s1.mass));
+        s2.vel.add(Vec2D.div(impulse, s2.mass));
         
-        const r1CrossI = Vec2D.cross(r1, impulse);
-        const r2CrossI = Vec2D.cross(r2, impulse);
+        const r1_cross_i = Vec2D.cross(r1, impulse);
+        const r2_cross_i = Vec2D.cross(r2, impulse);
 
-        s1.rotVel -= r1CrossI / s1.moi;
-        s2.rotVel += r2CrossI / s2.moi;
+        s1.rot_vel -= r1_cross_i / s1.moi;
+        s2.rot_vel += r2_cross_i / s2.moi;
         
-        const vf = abVel;
+        const vf = ab_vel;
 
-        const tangent = Vec2D.normalize(vf.subRet(normal.mult(vf.dot(normal))));
+        const tangent = Vec2D.normalize(Vec2D.sub(Vec2D.mult(normal, vf.dot(normal)), vf));
         const jt = -vf.dot(tangent) / m;
 
-        const mu = Math.sqrt(s1.material.sFriction * s1.material.sFriction + s2.material.sFriction * s2.material.sFriction)
-        let impulset; 
+        const mu = Math.sqrt(s1.material.s_friction * s1.material.s_friction + s2.material.s_friction * s2.material.s_friction)
+        let impulse_t; 
 
         if(Math.abs(jt) < j * mu) {
-            impulset = tangent.mult(jt);
+            impulse_t = Vec2D.mult(tangent, jt);
         } else {
-            const dFriction = Math.sqrt(s1.material.dFriction * s1.material.dFriction + s2.material.dFriction * s2.material.dFriction);
-            impulset = tangent.mult(-j * dFriction);
+            const d_friction = Math.sqrt(s1.material.d_friction * s1.material.d_friction + s2.material.d_friction * s2.material.d_friction);
+            impulse_t = Vec2D.mult(tangent, -j * d_friction);
         }
 
-        s1.vel.sub(impulset.div(s1.mass));
-        s2.vel.add(impulset.div(s2.mass));
+        s1.vel.sub(Vec2D.div(impulse_t, s1.mass));
+        s2.vel.add(Vec2D.div(impulse_t, s2.mass));
 
-        const r1CrossIt = Vec2D.cross(r1, impulset);
-        const r2CrossIt = Vec2D.cross(r2, impulset);
+        const r1_cross_it = Vec2D.cross(r1, impulse_t);
+        const r2_cross_it = Vec2D.cross(r2, impulse_t);
 
-        s1.rotVel -= r1CrossIt / s1.moi;
-        s2.rotVel += r2CrossIt / s2.moi;
+        s1.rot_vel -= r1_cross_it / s1.moi;
+        s2.rot_vel += r2_cross_it / s2.moi;
     }
 
-    findContacts(s1, s2, normal) {
-        const [p1, e1] = s1.findCollisionEdge(normal);
-        const [p2, e2] = s2.findCollisionEdge(normal.mult(-1));
+    find_contacts(s1, s2, normal) {
+        const [p1, e1] = s1.find_collision_edge(normal);
+        const [p2, e2] = s2.find_collision_edge(Vec2D.mult(normal, -1));
 
         if(e1 == null)
             return [p1];
@@ -700,110 +679,103 @@ class PhysEnv {
         if(e2 == null)
             return [p2];
 
-        const e1Dif = Vec2D.dif(e1[1], e1[0]);
-        const e2Dif = Vec2D.dif(e2[1], e2[0]);
+        const e1_dif = Vec2D.sub(e1[1], e1[0]);
+        const e2_dif = Vec2D.sub(e2[1], e2[0]);
 
-        let ref, pRef, eRef, inc, pInc, eInc;
-        if(Math.abs(e1Dif.dot(normal)) <= Math.abs(e2Dif.dot(normal))) {
-            pRef = p1;
-            eRef = e1;
-            ref = e1Dif;
-
-            pInc = p2;
-            eInc = e2;
-            inc = e2Dif;
+        let ref, p_ref, e_ref, e_inc;
+        if(Math.abs(e1_dif.dot(normal)) <= Math.abs(e2_dif.dot(normal))) {
+            p_ref = p1;
+            e_ref = e1;
+            ref = e1_dif;
+            e_inc = e2;
         } else {
-            pRef = p2;
-            eRef = e2;
-            ref = e2Dif;
-
-            pInc = p1;
-            eInc = e1;
-            inc = e1Dif;
+            p_ref = p2;
+            e_ref = e2;
+            ref = e2_dif;
+            e_inc = e1;
         }
 
-        const refV = Vec2D.normalize(ref).mult(-1);
-        const o1 = refV.dot(eRef[0]);
+        const ref_v = Vec2D.normalize(ref).mult(-1);
+        const o1 = ref_v.dot(e_ref[0]);
 
-        let cp = clip(eInc[0], eInc[1], refV, o1);
+        let cp = clip(e_inc[0], e_inc[1], ref_v, o1);
 
         if(cp.length < 2) return;
 
-        const o2 = refV.dot(eRef[1]);
+        const o2 = ref_v.dot(e_ref[1]);
         
-        cp = clip(cp[0], cp[1], refV.mult(-1), -o2);
+        cp = clip(cp[0], cp[1], Vec2D.mult(ref_v, -1), -o2);
         
         if(cp.length < 2) return;
 
-        let refNorm = Vec2D.cross(ref, -1);
-        
-        const max = refNorm.dot(pRef);
+        let ref_norm = Vec2D.cross(ref, -1);
+        const max = ref_norm.dot(p_ref);
 
-        if(refNorm.dot(cp[1]) - max < 0)
+        if(ref_norm.dot(cp[1]) - max < 0)
             cp.splice(1, 1);
 
-        if(refNorm.dot(cp[0]) - max < 0)
+        if(ref_norm.dot(cp[0]) - max < 0)
             cp.splice(0, 1);
 
         return cp;
     }
 
     GJK(s1, s2) {
-        let d = Vec2D.normalize(Vec2D.dif(s1.pos, s2.pos));
-        let simplex = [minkowskiDifSupport(s1, s2, d)];
-        d = Vec2D.dif(simplex[0], Vec2D.ZERO);
+        let d = Vec2D.normalize(Vec2D.sub(s1.pos, s2.pos));
+        let simplex = [minkowski_dif_support(s1, s2, d)];
+        d = Vec2D.sub(simplex[0], Vec2D.ZERO);
 
         while(true) {
             d = Vec2D.normalize(d);
-            const A = minkowskiDifSupport(s1, s2, d);
+            const A = minkowski_dif_support(s1, s2, d);
             if(A.dot(d) < 0)
                 return false;
             simplex.push(A);
-            if(this.handleSimplex(simplex, d))
+            if(this.handle_simplex(simplex, d))
                 return simplex;
         }
     }
 
-    handleSimplex(simplex, d) {
+    handle_simplex(simplex, d) {
         if(simplex.length == 2)
-            return this.lineCase(simplex, d);
-        return this.triangleCase(simplex, d);
+            return this.line_case(simplex, d);
+        return this.triangle_case(simplex, d);
     }
 
-    lineCase(simplex, d) {
+    line_case(simplex, d) {
         let [B, A] = simplex;
-        let AB = Vec2D.dif(A, B);
-        let AO = Vec2D.dif(A, Vec2D.ZERO);
-        let ABperp = Vec2D.tripleProd(AB, AO, AB);
-        d.x = ABperp.x;
-        d.y = ABperp.y;
+        let AB = Vec2D.sub(A, B);
+        let AO = Vec2D.sub(A, Vec2D.ZERO);
+        let AB_perp = Vec2D.triple_prod(AB, AO, AB);
+        d.x = AB_perp.x;
+        d.y = AB_perp.y;
         return false;
     }
 
-    triangleCase(simplex, d) {
+    triangle_case(simplex, d) {
         let [C, B, A] = simplex;
 
-        let AB = Vec2D.dif(A, B);
-        let AC = Vec2D.dif(A, C);
-        let AO = Vec2D.dif(A, Vec2D.ZERO);
+        let AB = Vec2D.sub(A, B);
+        let AC = Vec2D.sub(A, C);
+        let AO = Vec2D.sub(A, Vec2D.ZERO);
 
-        let ABperp = Vec2D.tripleProd(AC, AB, AB);
-        let ACperp = Vec2D.tripleProd(AB, AC, AC);
+        let AB_perp = Vec2D.triple_prod(AC, AB, AB);
+        let AC_perp = Vec2D.triple_prod(AB, AC, AC);
 
-        if(ABperp.dot(AO) > 0) {
+        if(AB_perp.dot(AO) > 0) {
 
             simplex.splice(0, 1);
 
-            d.x = ABperp.x;
-            d.y = ABperp.y;
+            d.x = AB_perp.x;
+            d.y = AB_perp.y;
 
             return false;
-        } else if(ACperp.dot(AO) > 0) {
+        } else if(AC_perp.dot(AO) > 0) {
 
             simplex.splice(1, 1);
 
-            d.x = ACperp.x;
-            d.y = ACperp.y;
+            d.x = AC_perp.x;
+            d.y = AC_perp.y;
 
             return false;
         }
@@ -811,31 +783,33 @@ class PhysEnv {
     }
 
     // expanding polytope algorithm
-    // TODO: fix circle infinite loop
     EPA(s1, s2, simplex) {
+        let count = 0;
         while(true) {
-            let [edgeDist, edgeNorm, edgeIDX] = this.findClosestEdge(simplex);
-            let sup = minkowskiDifSupport(s1, s2, edgeNorm);
+            let [edge_dist, edge_norm, edge_idx] = this.find_closest_edge(simplex);
+            let sup = minkowski_dif_support(s1, s2, edge_norm);
 
-            const d = sup.dot(edgeNorm);
+            if(count++ > 100)
+                throw "problem";
 
-            if(d - edgeDist <= 0.01) {
-                return [edgeNorm, edgeDist];
+            const d = sup.dot(edge_norm);
+            if(d - edge_dist <= 0.01) {
+                return [edge_norm, edge_dist];
             } else {
-                simplex.splice(edgeIDX, 0, sup);
+                simplex.splice(edge_idx, 0, sup);
             }
         }
     }
 
-    findClosestEdge(simplex) {
+    find_closest_edge(simplex) {
         let dist = Infinity;
         let normal, idx;
 
         for(let i = 0; i < simplex.length; i++) {
             const j = (i + 1) % simplex.length;
 
-            const edge = Vec2D.dif(simplex[i], simplex[j]);
-            const n = Vec2D.normalize(Vec2D.tripleProd(edge, simplex[i], edge));
+            const edge = Vec2D.sub(simplex[i], simplex[j]);
+            const n = Vec2D.normalize(Vec2D.triple_prod(edge, simplex[i], edge));
 
             const d = n.dot(simplex[i]);
 
@@ -849,7 +823,7 @@ class PhysEnv {
         return [dist, normal, idx];
     }
 
-    drawObjects(ctx) {
+    draw_objects(ctx) {
         for(const obj of this.objects) {
             obj.draw(ctx);
         }

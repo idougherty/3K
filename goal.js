@@ -39,9 +39,14 @@ class Goal {
 
         let net_pos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH / 2) * dir, pos.y + 35);
         this.net = new Net(env, net_pos);
+
+        this.scoring_hitbox = new GoalHitbox(this, net_pos);
+        env.add_object(this.scoring_hitbox.top_hitbox);
+        env.add_object(this.scoring_hitbox.bottom_hitbox);
     }
 
     step() {
+        this.scoring_hitbox.step();
         this.net.step();
     }
 
@@ -54,6 +59,60 @@ class Goal {
     
         ctx.strokeStyle = "#ea6";
         ctx.stroke();
+    }
+}
+
+class GoalHitbox {
+    
+    goal_ref = null;
+    top_hitbox = null;
+    bottom_hitbox = null;
+
+    is_top = false;
+    is_bottom = false;
+    
+    constructor(goal_ref, pos) {
+        const hitbox_shape = [
+            new Vec2D(0, 0),
+            new Vec2D(Goal.RIM_WDTH, 0),
+            new Vec2D(Goal.RIM_WDTH, 10),
+            new Vec2D(0, 10),
+        ];
+
+        const MATERIAL_HITBOX = {
+            density: 0,
+            s_friction: 0,
+            d_friction: 0,
+            restitution: 0,
+            color: "#ee6"
+        }
+
+        let top_pos = new Vec2D(pos.x, pos.y - 10);
+        this.top_hitbox = new PhysPolygon(top_pos, hitbox_shape, MATERIAL_HITBOX);
+        this.top_hitbox.is_active = false;
+        this.top_hitbox.on_collision = this.detect_ball;
+
+        let bottom_pos = new Vec2D(pos.x, pos.y + 10);
+        this.bottom_hitbox = new PhysPolygon(bottom_pos, hitbox_shape, MATERIAL_HITBOX);
+        this.bottom_hitbox.is_active = false;
+        this.bottom_hitbox.on_collision = this.detect_ball;
+
+        this.goal_ref = goal_ref;
+    }
+
+    detect_ball(hitbox, other) {
+        if(other.tag == "ball") {
+            hitbox.is_active = true;
+        }
+    }
+
+    step() {
+        if(this.top_hitbox.is_active && this.bottom_hitbox.is_active) {
+            console.log("SCORE!!");
+        }
+
+        this.top_hitbox.is_active = false;
+        this.bottom_hitbox.is_active = false;
     }
 }
 

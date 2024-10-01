@@ -107,6 +107,8 @@ class Net {
                     point.mass = Infinity;
                 point.moi = Infinity;
 
+                point.gravity_strength = 150;
+
                 const is_corporeal = col_idx != 0 && col_idx != num_points - 1;
 
                 if(is_corporeal) {

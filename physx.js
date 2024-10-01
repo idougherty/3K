@@ -262,7 +262,7 @@ class PhysObject {
         this.force = new Vec2D(0, 0);
         this.acc = new Vec2D(0, 0);
         this.vel = new Vec2D(0, 0);
-        this.pos = pos;
+        this.pos = new Vec2D(pos.x, pos.y);
 
         this.torque = 0;
         this.rot_acc = 0;

@@ -31,13 +31,8 @@ class PlayerFactory {
 class Player {
 
     static ID = 0;
-    static WIDTH = 22;
-    static HEIGHT = 45;
-    static CORNER = 5;
 
     static JUMPABLE_TAGS = ["player-body", "ball", "floor", "superball"];
-
-    is_grounded = false;
 
     constructor(env, pos, controls, color) {
         this.controls = controls;
@@ -56,15 +51,44 @@ class Player {
     }
     
     init_components(pos, color) {
+
+        let body = new PlayerBody(this, pos, color);
+        let hand = new PlayerHand(this, pos, color);
+        let ground_hitbox = new PlayerGroundHitbox(body, pos);
+
+        body.masks.push(this.collision_mask);
+        hand.masks.push(this.collision_mask);
+        ground_hitbox.masks.push(this.collision_mask);
+
+        return [body, hand, ground_hitbox];
+    }
+
+    step() {
+        this.body.step();
+        this.hand.step();
+        this.ground_hitbox.step();
+    }
+}
+
+class PlayerBody extends PhysPolygon {
+
+    static WIDTH = 22;
+    static HEIGHT = 45;
+    static CORNER = 5;
+
+    player_ref = null;
+
+    constructor(player_ref, pos, color) {
+
         let body_shape = [
-            new Vec2D(0, Player.CORNER),
-            new Vec2D(0, Player.HEIGHT - Player.CORNER),
-            new Vec2D(Player.CORNER, Player.HEIGHT),
-            new Vec2D(Player.WIDTH - Player.CORNER, Player.HEIGHT),
-            new Vec2D(Player.WIDTH, Player.HEIGHT - Player.CORNER),
-            new Vec2D(Player.WIDTH, Player.CORNER),
-            new Vec2D(Player.WIDTH - Player.CORNER, 0),
-            new Vec2D(Player.CORNER, 0),
+            new Vec2D(0, PlayerBody.CORNER),
+            new Vec2D(0, PlayerBody.HEIGHT - PlayerBody.CORNER),
+            new Vec2D(PlayerBody.CORNER, PlayerBody.HEIGHT),
+            new Vec2D(PlayerBody.WIDTH - PlayerBody.CORNER, PlayerBody.HEIGHT),
+            new Vec2D(PlayerBody.WIDTH, PlayerBody.HEIGHT - PlayerBody.CORNER),
+            new Vec2D(PlayerBody.WIDTH, PlayerBody.CORNER),
+            new Vec2D(PlayerBody.WIDTH - PlayerBody.CORNER, 0),
+            new Vec2D(PlayerBody.CORNER, 0),
         ];
 
         const MATERIAL_PLAYER = {
@@ -75,59 +99,46 @@ class Player {
             color,
         };
         
-        let body = new PhysPolygon(pos, body_shape, MATERIAL_PLAYER);
-        body.mass = 500;
-        body.moi = Infinity;
-        body.tag = "player-body"
+        super(pos, body_shape, MATERIAL_PLAYER);
 
-        let hand_pos = new Vec2D(pos.x, pos.y);
-        let hand = new PlayerHand(hand_pos);
-        hand.player_ref = this;
-
-        let hitbox_pos = new Vec2D(pos.x, pos.y + Player.HEIGHT / 2);
-        let ground_hitbox = new PlayerGroundHitbox(hitbox_pos);
-        ground_hitbox.player_ref = this;
-
-        body.masks.push(this.collision_mask);
-        hand.masks.push(this.collision_mask);
-        ground_hitbox.masks.push(this.collision_mask);
-
-        return [body, hand, ground_hitbox];
+        this.mass = 500;
+        this.moi = Infinity;
+        this.tag = "player-body"
+        this.player_ref = player_ref;
     }
 
     step() {
-        this.hand.step();
-        this.ground_hitbox.step();
 
-        const is_left = Input.is_key_pressed(this.controls.left);
-        const is_right = Input.is_key_pressed(this.controls.right);
-        const is_up = Input.is_key_pressed(this.controls.up);
+        const controls = this.player_ref.controls;
+        const is_left = Input.is_key_pressed(controls.left);
+        const is_right = Input.is_key_pressed(controls.right);
+        const is_up = Input.is_key_pressed(controls.up);
 
-        const max_speed = this.hand.is_handling ? 150 : 200;
+        const max_speed = this.player_ref.hand.is_handling ? 150 : 200;
         const speed_up = this.is_grounded ? 20 : 10;
         const slow_down = this.is_grounded ? 0.9 : 0.99;
 
         let acc = 0;
 
         if(is_right && !is_left) {
-            if(Math.abs(this.body.vel.x) < max_speed)
+            if(Math.abs(this.vel.x) < max_speed)
                 acc += speed_up;
         } else if (is_left && !is_right) {
-            if(Math.abs(this.body.vel.x) < max_speed)
+            if(Math.abs(this.vel.x) < max_speed)
                 acc -= speed_up;
         } 
         
-        this.body.vel.x += acc;
+        this.vel.x += acc;
 
-        if(acc == 0 || Math.sign(acc) != Math.sign(this.body.vel.x)) {
-            this.body.vel.x *= slow_down;
+        if(acc == 0 || Math.sign(acc) != Math.sign(this.vel.x)) {
+            this.vel.x *= slow_down;
         }
 
         if(is_up && this.is_grounded) {
-            this.body.vel.y = -275;
+            this.vel.y = -275;
         }
 
-        this.gravity_strength = is_up && this.body.vel.y < 0 ? 400 : 700;
+        this.gravity_strength = is_up && this.vel.y < 0 ? 400 : 600;
         this.is_grounded = false;
     }
 }
@@ -153,19 +164,20 @@ class PlayerHand extends PhysCircle {
     target_angle = PlayerHand.REST_ANGLE;
     arm_angle = PlayerHand.REST_ANGLE;
 
-    constructor(pos) {
+    constructor(player_ref, pos, color) {
 
         const MATERIAL_HITBOX = {
             density: 0,
             restitution: 0,
             s_friction: 0,
             d_friction: 0,
-            color: "#6ae",
+            color,
         };
 
         super(pos, PlayerHand.SIZE, MATERIAL_HITBOX);
 
         this.tag = "player-hand";
+        this.player_ref = player_ref;
     }
 
     shoot() {
@@ -233,7 +245,7 @@ class PlayerHand extends PhysCircle {
         this.arm_angle += 0.15 * (this.target_angle - this.arm_angle);
 
         let {x, y} = this.player_ref.body.pos;
-        const height = y - Player.HEIGHT / 2 + Player.WIDTH / 2;
+        const height = y - PlayerBody.HEIGHT / 2 + PlayerBody.WIDTH / 2;
         this.pos.x = x + this.direction * Math.cos(this.arm_angle) * PlayerHand.ARM_LENGTH;
         this.pos.y = height + Math.sin(this.arm_angle) * PlayerHand.ARM_LENGTH;
 
@@ -243,31 +255,33 @@ class PlayerHand extends PhysCircle {
 
 class PlayerGroundHitbox extends PhysCircle {
 
-    static SIZE = Player.WIDTH / 4;
+    static SIZE = PlayerBody.WIDTH / 4;
 
-    constructor(pos) {
+    constructor(body_ref, pos) {
 
         const MATERIAL_HITBOX = {
             density: 0,
             restitution: 0,
             s_friction: 0,
             d_friction: 0,
-            color: "#ea6",
+            color: "#ea60",
         };
 
         super(pos, PlayerGroundHitbox.SIZE, MATERIAL_HITBOX);
+
         this.on_collision = this.handle_ground_state;
+        this.body_ref = body_ref;
     }
 
     handle_ground_state(_, other) {
-        if(other != this.player_ref.body && Player.JUMPABLE_TAGS.includes(other.tag))
-            this.player_ref.is_grounded = true;
+        if(other != this.body_ref && Player.JUMPABLE_TAGS.includes(other.tag))
+            this.body_ref.is_grounded = true;
     }
 
     step() {
-        let {x, y} = this.player_ref.body.pos;
+        let {x, y} = this.body_ref.pos;
         this.pos.x = x;
-        this.pos.y = y + Player.HEIGHT / 2;
+        this.pos.y = y + PlayerBody.HEIGHT / 2;
     }
 
 }

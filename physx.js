@@ -572,12 +572,12 @@ class PhysEnv {
                 contacts = this.find_contacts(s1, s2, normal);
             }
 
-            if(s1.on_collision) s1.on_collision(s1, s2, normal);
-            if(s2.on_collision) s2.on_collision(s2, s1, Vec2D.mult(normal, -1));
+            if(s1.on_collision) s1.on_collision(s1, s2, 
+                {normal, depth, contacts});
+            if(s2.on_collision) s2.on_collision(s2, s1, 
+                {normal: Vec2D.mult(normal, -1), depth, contacts});
 
-            if(s1.mass == 0 || s2.mass == 0)
-                continue;
-            if(masked)
+            if(s1.mass == 0 || s2.mass == 0 || masked)
                 continue;
 
             for(const contact of contacts)

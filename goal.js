@@ -2,7 +2,7 @@
 class Goal {
     static RIM_WDTH = 45;
 
-    constructor(env, pos, dir = 1) {
+    constructor(env, pos, dir = 1, on_score) {
         const MATERIAL_BBOARD = {
             density: Infinity,
             restitution: 0.8,
@@ -22,8 +22,8 @@ class Goal {
         let board_shape = [
             new Vec2D(0,  0),
             new Vec2D(0,  100),
-            new Vec2D(15, 100),
-            new Vec2D(15, 0),
+            new Vec2D(10, 100),
+            new Vec2D(10, 0),
         ];
     
         this.backboard = new PhysPolygon(pos, board_shape, MATERIAL_BBOARD);
@@ -40,7 +40,7 @@ class Goal {
         let net_pos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH / 2) * dir, pos.y + 35);
         this.net = new Net(env, net_pos);
 
-        this.scoring_hitbox = new GoalHitbox(this, net_pos);
+        this.scoring_hitbox = new GoalHitbox(this, net_pos, on_score);
         env.add_object(this.scoring_hitbox.top_hitbox);
         env.add_object(this.scoring_hitbox.bottom_hitbox);
     }
@@ -71,7 +71,7 @@ class GoalHitbox {
     is_top = false;
     is_bottom = false;
     
-    constructor(goal_ref, pos) {
+    constructor(goal_ref, pos, on_score) {
         const hitbox_shape = [
             new Vec2D(0, 0),
             new Vec2D(Goal.RIM_WDTH, 0),
@@ -84,7 +84,7 @@ class GoalHitbox {
             s_friction: 0,
             d_friction: 0,
             restitution: 0,
-            color: "#ee6"
+            color: "#ee60"
         }
 
         let top_pos = new Vec2D(pos.x, pos.y - 10);
@@ -98,6 +98,7 @@ class GoalHitbox {
         this.bottom_hitbox.on_collision = this.detect_ball;
 
         this.goal_ref = goal_ref;
+        this.on_score = on_score;
     }
 
     detect_ball(hitbox, other) {
@@ -108,7 +109,7 @@ class GoalHitbox {
 
     step() {
         if(this.top_hitbox.is_active && this.bottom_hitbox.is_active) {
-            console.log("SCORE!!");
+            this.on_score();
         }
 
         this.top_hitbox.is_active = false;

@@ -45,6 +45,13 @@ let right_wall_shape = [
     new Vec2D(-WALL_WDTH, C_HGHT - WALL_WDTH),
 ];
 
+let platform_shape = [
+    new Vec2D(-WALL_WDTH,  WALL_WDTH),
+    new Vec2D(WALL_WDTH,  -WALL_WDTH),
+    new Vec2D(WALL_WDTH, C_HGHT + WALL_WDTH),
+    new Vec2D(-WALL_WDTH, C_HGHT - WALL_WDTH),
+];
+
 let floor_pos = new Vec2D(C_WDTH * 1/2, C_HGHT);
 floor = new PhysPolygon(floor_pos, floor_shape, MATERIAL_FLOOR);
 floor.tag = "floor";
@@ -65,11 +72,6 @@ let box_shape = [
     new Vec2D(20, -20),
 ];
 
-let box_pos = new Vec2D(C_WDTH * 1/2, C_HGHT * 1/2);
-let box = new PhysPolygon(box_pos, box_shape);
-box.rot_vel = 0.1;
-level.dynamic_objects.push(box);
-
 const MATERIAL_TRAMP = {
     density: Infinity,
     restitution: 5,
@@ -82,29 +84,29 @@ let tramp_pos = new Vec2D(C_WDTH * 1/2, C_HGHT * 1.25);
 let tramp = new PhysCircle(tramp_pos, 200, MATERIAL_TRAMP);
 level.static_objects.push(tramp);
 
-tramp.on_collision = (_, other, normal) => {
+tramp.on_collision = (_, other, {normal}) => {
     if(other.mass == Infinity || other.mass == 0)
         return;
 
     other.vel = Vec2D.mult(normal, 400);
 }
 
-for(let i = 0; i < 10; i++) {
+// for(let i = 0; i < 10; i++) {
 
-    const MATERIAL_SUPERBALL = {
-        density: .1,
-        restitution: 1,
-        s_friction: .2,
-        d_friction: .1,
-        color: `hsl(${Math.floor(Math.random()*360)}, 70%, 60%)`,
-    };
+//     const MATERIAL_SUPERBALL = {
+//         density: .1,
+//         restitution: 1,
+//         s_friction: .2,
+//         d_friction: .1,
+//         color: `hsl(${Math.floor(Math.random()*360)}, 70%, 60%)`,
+//     };
 
-    let pos = new Vec2D(100+(i*5), 0);
+//     let pos = new Vec2D(100+(i*5), 0);
 
-    let superball = new PhysCircle(pos, 10, MATERIAL_SUPERBALL);
-    superball.tag = "superball";
-    level.dynamic_objects.push(superball);
-}
+//     let superball = new PhysCircle(pos, 10, MATERIAL_SUPERBALL);
+//     superball.tag = "superball";
+//     level.dynamic_objects.push(superball);
+// }
 
 game.load_level(level);
 game.init();

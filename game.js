@@ -42,7 +42,7 @@ class Game {
             this.players.push(PlayerFactory.create_player(this.phys_env, spawn));
 
         for(const {pos, dir} of level.goal_spawns)
-            this.goals.push(new Goal(this.phys_env, pos, dir));
+            this.goals.push(new Goal(this.phys_env, pos, dir, this.on_score));
         
         this.ball = new Basketball(level.ball_spawn);
         this.phys_env.add_object(this.ball);
@@ -51,6 +51,10 @@ class Game {
     init() {
         this.tick = Game.GET_TICK();
         this.draw_loop();
+    }
+
+    on_score() {
+        console.log("SCORE!!!");
     }
 
     apply_gravity() {

@@ -15,9 +15,8 @@ class Level {
 class Game {
     static SEC_PER_TICK = 1 / 60;
     static GET_TICK = () => Math.floor(Date.now() / 1000 / Game.SEC_PER_TICK);
-    static ctx;
+    static PHYS_ENV = new PhysEnv();
 
-    phys_env;
     level;
     tick;
 
@@ -26,26 +25,28 @@ class Game {
     goals = [];
     
     constructor() {
-        this.phys_env = new PhysEnv();
     }
 
     load_level(level) {
         this.level = level;
 
         for(const object of level.dynamic_objects)
-            this.phys_env.add_object(object);
+            Game.PHYS_ENV.add_object(object);
 
         for(const object of level.static_objects)
-            this.phys_env.add_object(object);
+            Game.PHYS_ENV.add_object(object);
 
         for(const spawn of level.player_spawns)
-            this.players.push(PlayerFactory.create_player(this.phys_env, spawn));
+            this.players.push(PlayerFactory.create_player(spawn));
 
         for(const {pos, dir} of level.goal_spawns)
-            this.goals.push(new Goal(this.phys_env, pos, dir, this.on_score));
+            this.goals.push(new Goal(pos, dir, this.on_score));
         
         this.ball = new Basketball(level.ball_spawn);
-        this.phys_env.add_object(this.ball);
+        Game.PHYS_ENV.add_object(this.ball);
+
+        Game.PHYS_ENV.mask_table.add_default_mask("net-inner");
+        Game.PHYS_ENV.mask_table.set_mask("net-inner", "net-outer", false);
     }
 
     init() {
@@ -58,7 +59,7 @@ class Game {
     }
 
     apply_gravity() {
-        for(const obj of this.phys_env.objects) {
+        for(const obj of Game.PHYS_ENV.objects) {
             if(obj.mass == 0 || obj.mass == Infinity)
                 continue;
 
@@ -75,7 +76,7 @@ class Game {
 
     step() {
         this.apply_gravity();
-        this.phys_env.update(Game.SEC_PER_TICK);
+        Game.PHYS_ENV.update(Game.SEC_PER_TICK);
 
         for(const player of this.players)
             player.step();
@@ -95,12 +96,14 @@ class Game {
         for(const goal of this.goals)
             goal.draw(ctx);
 
-        this.phys_env.draw_objects(ctx);
+        Game.PHYS_ENV.draw_objects(ctx);
     }
     
     draw_loop() {
         let curr_tick = Game.GET_TICK();
     
+        // will only simulate 100 ticks in one draw cycle
+        this.tick = Math.max(this.tick, curr_tick - 100);
         while(this.tick < curr_tick) {
             this.step();
             this.tick++;

@@ -84,7 +84,7 @@ let tramp_pos = new Vec2D(C_WDTH * 1/2, C_HGHT * 1.25);
 let tramp = new PhysCircle(tramp_pos, 200, MATERIAL_TRAMP);
 level.static_objects.push(tramp);
 
-tramp.on_collision = (_, other, {normal}) => {
+tramp.on_collision = (_, other, normal) => {
     if(other.mass == Infinity || other.mass == 0)
         return;
 

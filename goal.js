@@ -2,7 +2,7 @@
 class Goal {
     static RIM_WDTH = 45;
 
-    constructor(env, pos, dir = 1, on_score) {
+    constructor(pos, dir = 1, on_score) {
         const MATERIAL_BBOARD = {
             density: Infinity,
             restitution: 0.8,
@@ -27,22 +27,20 @@ class Goal {
         ];
     
         this.backboard = new PhysPolygon(pos, board_shape, MATERIAL_BBOARD);
-        env.add_object(this.backboard);
+        Game.PHYS_ENV.add_object(this.backboard);
     
         let rim_pos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH) * dir, pos.y + 35);
         this.f_rim = new PhysCircle(rim_pos, 5, MATERIAL_RIM);
-        env.add_object(this.f_rim);
+        Game.PHYS_ENV.add_object(this.f_rim);
     
         rim_pos = new Vec2D(pos.x + 20 * dir, pos.y + 35);
         this.b_rim = new PhysCircle(rim_pos, 5, MATERIAL_RIM);
-        env.add_object(this.b_rim);
+        Game.PHYS_ENV.add_object(this.b_rim);
 
         let net_pos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH / 2) * dir, pos.y + 35);
-        this.net = new Net(env, net_pos);
+        this.net = new Net(net_pos);
 
         this.scoring_hitbox = new GoalHitbox(this, net_pos, on_score);
-        env.add_object(this.scoring_hitbox.top_hitbox);
-        env.add_object(this.scoring_hitbox.bottom_hitbox);
     }
 
     step() {
@@ -91,11 +89,13 @@ class GoalHitbox {
         this.top_hitbox = new PhysPolygon(top_pos, hitbox_shape, MATERIAL_HITBOX);
         this.top_hitbox.is_active = false;
         this.top_hitbox.on_collision = this.detect_ball;
+        Game.PHYS_ENV.add_object(this.top_hitbox);
 
         let bottom_pos = new Vec2D(pos.x, pos.y + 10);
         this.bottom_hitbox = new PhysPolygon(bottom_pos, hitbox_shape, MATERIAL_HITBOX);
         this.bottom_hitbox.is_active = false;
         this.bottom_hitbox.on_collision = this.detect_ball;
+        Game.PHYS_ENV.add_object(this.bottom_hitbox);
 
         this.goal_ref = goal_ref;
         this.on_score = on_score;
@@ -121,16 +121,14 @@ class Net {
     points = [];
     links = [];
 
-    constructor(env, base_pos) {
-
+    constructor(base_pos) {
         this.width = 5;
         this.height = 6;
 
-        this.init_net(env, base_pos);
-    
+        this.init_net(base_pos);
     }
 
-    init_net(env, base_pos) {
+    init_net(base_pos) {
 
         const MATERIAL_NET = {
             density: 0.7,
@@ -168,15 +166,17 @@ class Net {
                 point.moi = Infinity;
 
                 point.gravity_strength = 150;
-
+                
                 const is_corporeal = col_idx != 0 && col_idx != num_points - 1;
-
+                
                 if(is_corporeal) {
-                    point.on_collision = this.corporeal_func;
-                    point.masks.push("ball-net")
+                    point.tag = "net-inner";
+                    point.on_collision = this.corporeal_func;                
+                } else {
+                    point.tag = "net-outer";
                 }
                 
-                env.add_object(point);
+                Game.PHYS_ENV.add_object(point);
                 row.push(point);
             }
 

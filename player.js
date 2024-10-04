@@ -20,11 +20,10 @@ class PlayerFactory {
         "#6e6", "#e6e", 
     ];
 
-    static create_player(env, spawn) {
+    static create_player(spawn) {
         let controls = PlayerFactory.CONTROLS[Player.ID];
         let color = PlayerFactory.COLORS[Player.ID];
-
-        return new Player(env, spawn, controls, color);
+        return new Player(spawn, controls, color);
     }
 }
 
@@ -34,10 +33,9 @@ class Player {
 
     static JUMPABLE_TAGS = ["player-body", "ball", "floor", "superball"];
 
-    constructor(env, pos, controls, color) {
+    constructor(pos, controls, color) {
         this.controls = controls;
         this.id = Player.ID++;
-        this.collision_mask = `player-${this.id}`;
         
         const [body, hand, ground] = this.init_components(pos, color);
 
@@ -45,20 +43,15 @@ class Player {
         this.hand = hand;
         this.ground_hitbox = ground;
 
-        env.add_object(this.body);
-        env.add_object(this.hand);
-        env.add_object(this.ground_hitbox);
+        Game.PHYS_ENV.add_object(this.body);
+        Game.PHYS_ENV.add_object(this.hand);
+        Game.PHYS_ENV.add_object(this.ground_hitbox);
     }
     
     init_components(pos, color) {
-
         let body = new PlayerBody(this, pos, color);
         let hand = new PlayerHand(this, pos, color);
         let ground_hitbox = new PlayerGroundHitbox(body, pos);
-
-        body.masks.push(this.collision_mask);
-        hand.masks.push(this.collision_mask);
-        ground_hitbox.masks.push(this.collision_mask);
 
         return [body, hand, ground_hitbox];
     }
@@ -103,7 +96,7 @@ class PlayerBody extends PhysPolygon {
 
         this.mass = 500;
         this.moi = Infinity;
-        this.tag = "player-body"
+        this.tag = `player-body-${player_ref.id}`;
         this.player_ref = player_ref;
     }
 
@@ -176,7 +169,7 @@ class PlayerHand extends PhysCircle {
 
         super(pos, PlayerHand.SIZE, MATERIAL_HITBOX);
 
-        this.tag = "player-hand";
+        this.tag = `player-hand-${player_ref.id}`;
         this.player_ref = player_ref;
     }
 
@@ -193,7 +186,6 @@ class PlayerHand extends PhysCircle {
         this.ball_ref.rot_vel = -this.direction * r_strength;
         this.ball_ref.is_handled = false;
         this.ball_ref.hand_ref = null;
-        this.ball_ref.masks.splice(this.ball_ref.masks.indexOf(this.player_ref.collision_mask), 1);
 
         this.shot_charge = 0;
         this.shot_cooldown = PlayerHand.SHOT_COOLDOWN_TICKS;

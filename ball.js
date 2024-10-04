@@ -18,12 +18,11 @@ class Basketball extends PhysCircle {
         super(pos, Basketball.SIZE, MATERIAL_BBALL);
 
         this.tag = "ball";
-        this.masks.push("ball-net");
         this.on_collision = this.handle_possession;
     }
 
     handle_possession(_, other) {
-        if(other.tag != "player-hand" || 
+        if(!other.tag.startsWith("player-hand") || 
             other.is_handling || 
             other.shot_cooldown > 0)
             return;
@@ -37,16 +36,13 @@ class Basketball extends PhysCircle {
             this.hand_ref.ball_ref = null;
             this.hand_ref.shot_charge = 0;
             this.hand_ref.shot_cooldown = PlayerHand.SHOT_COOLDOWN_TICKS;
-            this.masks.splice(this.masks.indexOf(this.hand_ref.player_ref.collision_mask), 1);
+            Game.PHYS_ENV.mask_table.set_mask(this.tag, this.hand_ref.player_ref.body.tag, false);
         }
 
         this.is_handled = true;
         this.hand_ref = other;
 
-        const mask = other.player_ref.collision_mask;
-
-        if(!this.masks.includes(mask))
-            this.masks.push(mask);
+        Game.PHYS_ENV.mask_table.set_mask(this.tag, this.hand_ref.player_ref.body.tag);
     }
 
     step() {

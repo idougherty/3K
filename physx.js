@@ -274,7 +274,6 @@ class PhysObject {
         this.mass = mass;
         this.moi = moi;
 
-        this.masks = [];
         this.on_collision = null;
         this.tag = "";
     }
@@ -456,12 +455,60 @@ class PhysCircle extends PhysObject {
     }
 }
 
+// you can define default masks for an object tag of your choice or
+// define a mask specifically between two tags.
+// the mask with more specificity always takes priority
+class CollisionMaskTable {
+    constructor() {
+        this.table = new Map();
+        this.default_masks = new Set();
+    }
+
+    add_default_mask(A) {
+        this.default_masks.add(A);
+    }
+
+    clear_default_mask(A) {
+        this.default_masks.delete(A);
+    }
+
+    // TODO: over a long time the table may grow to be large, 
+    // eventually we want to clean up unused values 
+    set_mask(A, B, is_masked = true) {
+        let outer_key = A < B ? A : B;
+        let inner_key = A > B ? A : B;
+
+        if(this.table.has(outer_key)) {
+            let inner_map = this.table.get(outer_key);
+            inner_map.set(inner_key, is_masked);
+        } else {
+            let inner_map = new Map([[inner_key, is_masked]]);
+            this.table.set(outer_key, inner_map);
+        }
+    }
+
+    is_masked(A, B) {
+        let outer_key = A < B ? A : B;
+        let inner_key = A > B ? A : B;
+        
+        if(this.table.has(outer_key)) {
+            let inner_map = this.table.get(outer_key);
+            if(inner_map.has(inner_key)) {
+                return inner_map.get(inner_key);
+            }
+        }
+        
+        return this.default_masks.has(A) || this.default_masks.has(B);
+    }
+}
+
 class PhysEnv {
 
     constructor(objects = []) {
         this.objects = [];
         this.intervals = [];
         this.sweep_x = true;
+        this.mask_table = new CollisionMaskTable();
 
         for(const obj of objects) {
             this.add_object(obj);
@@ -547,35 +594,12 @@ class PhysEnv {
             if(!(simplex = this.GJK(s1, s2)))
                 continue;
 
-            let masked = false;
+            let masked = this.mask_table.is_masked(s1.tag, s2.tag);
 
-            for(let i = 0; i < s1.masks.length; i++) {
-                for(let j = 0; j < s2.masks.length; j++) {
-                    if(s1.masks[i] == s2.masks[j]) {
-                        masked = true;
-                        
-                        i = s1.masks.length;
-                        j = s2.masks.length;
-                    }
-                }
-            }
+            let [normal, depth, contacts] = this.find_collision_data(s1, s2, simplex);
 
-            let normal, depth, contacts;
-
-            if(s1 instanceof PhysCircle && s2 instanceof PhysCircle) {
-                normal = Vec2D.normalize(Vec2D.sub(s1.pos, s2.pos));
-                let contact = Vec2D.add(s1.pos, Vec2D.mult(normal, s1.radius));
-                depth = s2.radius - Vec2D.mag(Vec2D.sub(s2.pos, contact));
-                contacts = [contact];
-            } else {
-                [normal, depth] = this.EPA(s1, s2, simplex);
-                contacts = this.find_contacts(s1, s2, normal);
-            }
-
-            if(s1.on_collision) s1.on_collision(s1, s2, 
-                {normal, depth, contacts});
-            if(s2.on_collision) s2.on_collision(s2, s1, 
-                {normal: Vec2D.mult(normal, -1), depth, contacts});
+            if(s1.on_collision) s1.on_collision(s1, s2, normal);
+            if(s2.on_collision) s2.on_collision(s2, s1, Vec2D.mult(normal, -1));
 
             if(s1.mass == 0 || s2.mass == 0 || masked)
                 continue;
@@ -588,6 +612,22 @@ class PhysEnv {
             s1.update();
             s2.update();
         }
+    }
+
+    find_collision_data(s1, s2, simplex) {
+        let normal, depth, contacts;
+
+        if(s1 instanceof PhysCircle && s2 instanceof PhysCircle) {
+            normal = Vec2D.normalize(Vec2D.sub(s1.pos, s2.pos));
+            let contact = Vec2D.add(s1.pos, Vec2D.mult(normal, s1.radius));
+            depth = s2.radius - Vec2D.mag(Vec2D.sub(s2.pos, contact));
+            contacts = [contact];
+        } else {
+            [normal, depth] = this.EPA(s1, s2, simplex);
+            contacts = this.find_contacts(s1, s2, normal);
+        }
+
+        return [normal, depth, contacts];
     }
 
     resolve_intersections(s1, s2, normal, depth) {

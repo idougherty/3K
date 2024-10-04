@@ -186,6 +186,7 @@ class PlayerHand extends PhysCircle {
         this.ball_ref.rot_vel = -this.direction * r_strength;
         this.ball_ref.is_handled = false;
         this.ball_ref.hand_ref = null;
+        Game.PHYS_ENV.mask_table.set_mask(this.player_ref.body.tag, this.ball_ref.tag, false);
 
         this.shot_charge = 0;
         this.shot_cooldown = PlayerHand.SHOT_COOLDOWN_TICKS;
@@ -266,7 +267,8 @@ class PlayerGroundHitbox extends PhysCircle {
     }
 
     handle_ground_state(_, other) {
-        if(other != this.body_ref && Player.JUMPABLE_TAGS.includes(other.tag))
+        if(other != this.body_ref && (Player.JUMPABLE_TAGS.includes(other.tag) ||
+            other.tag.startsWith("player-body")))
             this.body_ref.is_grounded = true;
     }
 

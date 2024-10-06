@@ -180,9 +180,14 @@ class Vec2D {
         }
     }
 
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
+    constructor(A, B) {
+        if(A.x == undefined) {
+            this.x = A;
+            this.y = B;
+        } else {
+            this.x = A.x;
+            this.y = A.y;
+        }
     }
 
     add(other) {

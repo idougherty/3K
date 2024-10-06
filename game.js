@@ -17,9 +17,12 @@ class Game {
     static GET_TICK = () => Math.floor(Date.now() / 1000 / Game.SEC_PER_TICK);
     static PHYS_ENV = new PhysEnv();
 
-    level;
     tick;
+    state;
 
+    level;
+    object_spawns = new Map();
+    
     players = [];
     ball;
     goals = [];
@@ -30,17 +33,22 @@ class Game {
     load_level(level) {
         this.level = level;
 
-        for(const object of level.dynamic_objects)
+        for(const object of level.dynamic_objects) {
             Game.PHYS_ENV.add_object(object);
+            this.object_spawns.set(object, new Vec2D(object.pos));
+        }
 
-        for(const object of level.static_objects)
+        for(const object of level.static_objects) {
             Game.PHYS_ENV.add_object(object);
+        }
 
-        for(const spawn of level.player_spawns)
+        for(const spawn of level.player_spawns) {
             this.players.push(PlayerFactory.create_player(spawn));
+        }
 
-        for(const {pos, dir} of level.goal_spawns)
-            this.goals.push(new Goal(pos, dir, this.on_score));
+        for(const {pos, dir} of level.goal_spawns) {
+            this.goals.push(new Goal(pos, dir, this.on_score.bind(this)));
+        }
         
         this.ball = new Basketball(level.ball_spawn);
         Game.PHYS_ENV.add_object(this.ball);
@@ -56,6 +64,32 @@ class Game {
 
     on_score() {
         console.log("SCORE!!!");
+
+        for(const player of this.players) {
+            player.body.moi = 100000;
+            player.body.rot_vel = (Math.random() - 0.5) * 0.5;
+            let dif = Vec2D.sub(this.ball.pos, player.body.pos);
+            let power = Math.max(1000 - Vec2D.mag(dif), 0) / 2;
+            player.body.vel.add(Vec2D.normalize(dif).mult(power));
+            console.log(power)
+        }
+
+        window.setTimeout(() => {
+            for(const [idx, player] of this.players.entries()) {
+                let spawn = this.level.player_spawns[idx];
+                player.body.pos = new Vec2D(spawn);
+                player.body.vel.mult(0);
+                player.body.rot_vel = 0;
+                player.body.angle = 0;
+                player.body.moi = Infinity;
+            }
+    
+            this.ball.pos = new Vec2D(this.level.ball_spawn);
+            this.ball.vel.mult(0);
+            this.ball.rot_vel = 0;
+            this.ball.angle = 0;
+        }, 2000)
+
     }
 
     apply_gravity() {

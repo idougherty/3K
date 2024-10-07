@@ -237,10 +237,15 @@ class PlayerHand extends PhysCircle {
         this.shot_cooldown -= 1;
         this.arm_angle += 0.15 * (this.target_angle - this.arm_angle);
 
-        let {x, y} = this.player_ref.body.pos;
-        const height = y - PlayerBody.HEIGHT / 2 + PlayerBody.WIDTH / 2;
-        this.pos.x = x + this.direction * Math.cos(this.arm_angle) * PlayerHand.ARM_LENGTH;
-        this.pos.y = height + Math.sin(this.arm_angle) * PlayerHand.ARM_LENGTH;
+        let {pos, angle} = this.player_ref.body;
+        const height = pos.y - PlayerBody.HEIGHT / 2 + PlayerBody.WIDTH / 2;
+        let shoulder = Vec2D.rotate(pos, new Vec2D(pos.x, height), angle).add(pos);
+
+        if(this.direction == -1)
+            angle += Math.PI;
+
+        this.pos.x = shoulder.x + Math.cos(this.direction * this.arm_angle + angle) * PlayerHand.ARM_LENGTH;
+        this.pos.y = shoulder.y + Math.sin(this.direction * this.arm_angle + angle) * PlayerHand.ARM_LENGTH;
 
         this.was_action = is_action;
     }

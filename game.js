@@ -28,6 +28,7 @@ class Game {
     goals = [];
     
     constructor() {
+        this.state = "GAME_RUNNING";
     }
 
     load_level(level) {
@@ -63,15 +64,19 @@ class Game {
     }
 
     on_score() {
-        console.log("SCORE!!!");
+        if(this.state != "GAME_RUNNING")
+            return;
+
+        this.state = "GAME_SCORED";
+
+        console.log("SCORE!!!", this.state);
 
         for(const player of this.players) {
             player.body.moi = 100000;
             player.body.rot_vel = (Math.random() - 0.5) * 0.5;
             let dif = Vec2D.sub(this.ball.pos, player.body.pos);
-            let power = Math.max(1000 - Vec2D.mag(dif), 0) / 2;
+            let power = Math.max(1000 - Vec2D.mag(dif), 0);
             player.body.vel.add(Vec2D.normalize(dif).mult(power));
-            console.log(power)
         }
 
         window.setTimeout(() => {
@@ -88,6 +93,8 @@ class Game {
             this.ball.vel.mult(0);
             this.ball.rot_vel = 0;
             this.ball.angle = 0;
+
+            this.state = "GAME_RUNNING";
         }, 2000)
 
     }

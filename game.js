@@ -71,12 +71,18 @@ class Game {
 
         console.log("SCORE!!!", this.state);
 
-        for(const player of this.players) {
-            player.body.moi = 100000;
-            player.body.rot_vel = (Math.random() - 0.5) * 0.5;
-            let dif = Vec2D.sub(this.ball.pos, player.body.pos);
+        for(const object of Game.PHYS_ENV.objects) {
+            if(object.tag == "ball" || object.mass == 0 || object.mass == Infinity)
+                continue;
+
+            let dif = Vec2D.sub(this.ball.pos, object.pos);
             let power = Math.max(1000 - Vec2D.mag(dif), 0);
-            player.body.vel.add(Vec2D.normalize(dif).mult(power));
+            object.vel.add(Vec2D.normalize(dif).mult(power));
+        }
+
+        for(const player of this.players) {
+            player.body.moi = 500000;
+            player.body.material.restitution = 0.8;
         }
 
         window.setTimeout(() => {
@@ -87,6 +93,7 @@ class Game {
                 player.body.rot_vel = 0;
                 player.body.angle = 0;
                 player.body.moi = Infinity;
+                player.body.material.restitution = 0;
             }
     
             this.ball.pos = new Vec2D(this.level.ball_spawn);
@@ -95,7 +102,7 @@ class Game {
             this.ball.angle = 0;
 
             this.state = "GAME_RUNNING";
-        }, 2000)
+        }, 3000)
 
     }
 

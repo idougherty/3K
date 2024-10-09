@@ -66,11 +66,31 @@ let right_wall = new PhysPolygon(right_wall_pos, right_wall_shape, MATERIAL_FLOO
 level.static_objects.push(right_wall);
 
 let box_shape = [
-    new Vec2D(-20, -20),
-    new Vec2D(-20, 20),
-    new Vec2D(20, 20),
-    new Vec2D(20, -20),
+    new Vec2D(-10, -10),
+    new Vec2D(-10, 10),
+    new Vec2D(10, 10),
+    new Vec2D(10, -10),
 ];
+
+const MATERIAL_BOX = {
+    density: 1,
+    restitution: 0.4,
+    s_friction: .2,
+    d_friction: .1,
+    color: "#393",
+};
+
+// for(let i = 0; i < 100; i++) {
+//     let pos = new Vec2D(C_WDTH/2, 0);
+//     let box = new PhysPolygon(pos, box_shape, MATERIAL_BOX);
+//     box.tag = "superball"
+//     level.dynamic_objects.push(box);
+// }
+
+// let box_pos = new Vec2D(C_WDTH * 2/3, C_HGHT * 0.6);
+// let box = new PhysPolygon(box_pos, box_shape, MATERIAL_BOX);
+// box.tag = "box";
+// level.dynamic_objects.push(box);
 
 const MATERIAL_TRAMP = {
     density: Infinity,
@@ -82,7 +102,7 @@ const MATERIAL_TRAMP = {
 
 let tramp_pos = new Vec2D(C_WDTH * 1/2, C_HGHT * 1.25);
 let tramp = new PhysCircle(tramp_pos, 200, MATERIAL_TRAMP);
-level.static_objects.push(tramp);
+// level.static_objects.push(tramp);
 
 tramp.on_collision = (_, other, normal) => {
     if(other.mass == Infinity || other.mass == 0)
@@ -91,17 +111,17 @@ tramp.on_collision = (_, other, normal) => {
     other.vel = Vec2D.mult(normal, 400);
 }
 
-// for(let i = 0; i < 10; i++) {
+// for(let i = 0; i < 300; i++) {
 
 //     const MATERIAL_SUPERBALL = {
 //         density: .1,
-//         restitution: 1,
+//         restitution: 0.5,
 //         s_friction: .2,
 //         d_friction: .1,
 //         color: `hsl(${Math.floor(Math.random()*360)}, 70%, 60%)`,
 //     };
 
-//     let pos = new Vec2D(100+(i*5), 0);
+//     let pos = new Vec2D(C_WDTH/2 + Math.random(), Math.random());
 
 //     let superball = new PhysCircle(pos, 10, MATERIAL_SUPERBALL);
 //     superball.tag = "superball";

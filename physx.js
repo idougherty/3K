@@ -40,6 +40,24 @@ function insertion_sort(arr, lambda = (x) => x) {
     }
 }
 
+function shuffle(array) {
+    var m = array.length, t, i;
+
+    // While there remain elements to shuffle…
+    while (m) {
+
+        // Pick a remaining element…
+        i = Math.floor(Math.random() * m--);
+
+        // And swap it with the current element.
+        t = array[m];
+        array[m] = array[i];
+        array[i] = t;
+    }
+
+    return array;
+}
+
 function minkowski_dif_support(s1, s2, d) {
     let support1 = s1.get_support(d);
     let support2 = s2.get_support(Vec2D.mult(d, -1));
@@ -563,7 +581,7 @@ class PhysEnv {
             insertion_sort(this.intervals, (x) => x[0].y);
         }
 
-        for(let i = this.intervals.length - 1; i >= 0; i--) {
+        for(let i = 0; i < this.intervals.length; i++) {
             const node = this.intervals[i];
             if(active_objects[node[1]] != null) {
                 delete active_objects[node[1]];
@@ -576,7 +594,7 @@ class PhysEnv {
             }
         }
 
-        return overlaps;
+        return shuffle(overlaps);
     }
 
     update(dt) {
@@ -606,11 +624,14 @@ class PhysEnv {
             if(s1.on_collision) s1.on_collision(s1, s2, normal);
             if(s2.on_collision) s2.on_collision(s2, s1, Vec2D.mult(normal, -1));
 
-            if(s1.mass == 0 || s2.mass == 0 || masked)
+            if(s1.mass == 0 || s2.mass == 0 || masked || !contacts)
                 continue;
 
-            for(const contact of contacts)
-                this.apply_impulses(s1, s2, normal, contact);
+            shuffle(contacts);
+            for(const contact of contacts) {
+                let impulse = this.find_impulse(s1, s2, normal, contact);
+                this.apply_impulse(s1, s2, impulse, contact);
+            }
 
             this.resolve_intersections(s1, s2, normal, depth);
 
@@ -658,7 +679,7 @@ class PhysEnv {
         }
     }
 
-    apply_impulses(s1, s2, normal, contact) {
+    find_impulse(s1, s2, normal, contact) {
         const r1 = Vec2D.sub(s1.pos, contact);
         const v1 = Vec2D.add(s1.vel, Vec2D.cross(s1.rot_vel, r1));
 
@@ -669,7 +690,7 @@ class PhysEnv {
         const contact_vel = ab_vel.dot(normal);
 
         if(contact_vel >= 0)
-            return;
+            return Vec2D.ZERO;
 
         const arm_a = Vec2D.cross(r1, normal);
         const arm_b = Vec2D.cross(r2, normal);
@@ -680,15 +701,6 @@ class PhysEnv {
         const j = (-(rest + 1) * contact_vel) / m;
         const impulse = Vec2D.mult(normal, j);
 
-        s1.vel.sub(Vec2D.div(impulse, s1.mass));
-        s2.vel.add(Vec2D.div(impulse, s2.mass));
-        
-        const r1_cross_i = Vec2D.cross(r1, impulse);
-        const r2_cross_i = Vec2D.cross(r2, impulse);
-
-        s1.rot_vel -= r1_cross_i / s1.moi;
-        s2.rot_vel += r2_cross_i / s2.moi;
-        
         const vf = ab_vel;
 
         const tangent = Vec2D.normalize(Vec2D.sub(Vec2D.mult(normal, vf.dot(normal)), vf));
@@ -703,15 +715,22 @@ class PhysEnv {
             const d_friction = Math.sqrt(s1.material.d_friction * s1.material.d_friction + s2.material.d_friction * s2.material.d_friction);
             impulse_t = Vec2D.mult(tangent, -j * d_friction);
         }
+        
+        return Vec2D.add(impulse, impulse_t);
+    }
 
-        s1.vel.sub(Vec2D.div(impulse_t, s1.mass));
-        s2.vel.add(Vec2D.div(impulse_t, s2.mass));
+    apply_impulse(s1, s2, impulse, contact) {
+        const r1 = Vec2D.sub(s1.pos, contact);
+        const r2 = Vec2D.sub(s2.pos, contact);
 
-        const r1_cross_it = Vec2D.cross(r1, impulse_t);
-        const r2_cross_it = Vec2D.cross(r2, impulse_t);
+        s1.vel.sub(Vec2D.div(impulse, s1.mass));
+        s2.vel.add(Vec2D.div(impulse, s2.mass));
+        
+        const r1_cross_i = Vec2D.cross(r1, impulse);
+        const r2_cross_i = Vec2D.cross(r2, impulse);
 
-        s1.rot_vel -= r1_cross_it / s1.moi;
-        s2.rot_vel += r2_cross_it / s2.moi;
+        s1.rot_vel -= r1_cross_i / s1.moi;
+        s2.rot_vel += r2_cross_i / s2.moi;
     }
 
     find_contacts(s1, s2, normal) {

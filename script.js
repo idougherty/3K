@@ -9,7 +9,7 @@ let game = new Game();
 
 let level = new Level();
 level.ball_spawn = new Vec2D(C_WDTH / 3, C_HGHT * 2/3);
-level.player_spawns[0] = new Vec2D(C_WDTH * 1/4, C_HGHT * 2/3);
+level.player_spawns[0] = new Vec2D(C_WDTH * 2/5, C_HGHT * 2/3);
 level.player_spawns[1] = new Vec2D(C_WDTH * 3/4, C_HGHT * 2/3);
 level.goal_spawns[0] = {pos:  new Vec2D(C_WDTH * 0.1, C_HGHT * 0.6), dir: 1};
 level.goal_spawns[1] = {pos:  new Vec2D(C_WDTH * 0.9, C_HGHT * 0.6), dir: -1};
@@ -100,8 +100,8 @@ const MATERIAL_TRAMP = {
     color: "#66f",
 };
 
-let tramp_pos = new Vec2D(C_WDTH * 1/2, C_HGHT * 1.25);
-let tramp = new PhysCircle(tramp_pos, 200, MATERIAL_TRAMP);
+let tramp_pos = new Vec2D(C_WDTH * 1/4, C_HGHT * 1.19);
+let tramp = new PhysCircle(tramp_pos, 150, MATERIAL_TRAMP);
 tramp.tag = "tramp";
 level.static_objects.push(tramp);
 Game.PHYS_ENV.rest_table.add_restitution_override(tramp.tag, 0.9);
@@ -112,12 +112,12 @@ tramp.on_impulse = (_, other, {normal, impulse, contact}) => {
 
     Game.PHYS_ENV.apply_impulse(tramp, other, impulse, contact);
 
-    const target_impulse = 400;
+    const target_impulse = 350;
 
     let vel_mag = other.vel.dot(normal); 
     let new_impulse = Vec2D.mult(normal, (target_impulse - vel_mag) * other.mass);
     Game.PHYS_ENV.apply_impulse(tramp, other, new_impulse, contact);
-    
+
     return true;
 }
 

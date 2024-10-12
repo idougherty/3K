@@ -141,6 +141,7 @@ class PlayerHand extends PhysCircle {
     static SIZE = 5;
     static ARM_LENGTH = 30;
     static REST_ANGLE = Math.PI / 4;
+    static DUNK_ANGLE = -Math.PI * 0.25;
     static MIN_SHOOTING_ANGLE = -Math.PI * 0.35;
     static MAX_SHOOTING_ANGLE = -Math.PI * 0.75;
     static SHOT_COOLDOWN_TICKS = 45;
@@ -150,6 +151,8 @@ class PlayerHand extends PhysCircle {
     shot_cooldown = 0;
     is_handling = false;
     is_shooting = false;
+    can_dunk = true;
+    is_dunking = false;
     was_action = false;
     player_ref = null;
     ball_ref = null;
@@ -195,6 +198,28 @@ class PlayerHand extends PhysCircle {
         this.ball_ref = null;
     }
 
+    dunk() {
+        if(!this.is_handling || !this.is_dunking)
+            return;
+
+        const x_strength = Math.cos(this.arm_angle + Math.PI/2) * 300;
+        const y_strength = Math.sin(this.arm_angle + Math.PI/2) * 300;
+        const r_strength = 0;
+
+        this.ball_ref.vel.x = this.direction * x_strength + this.player_ref.body.vel.x;
+        this.ball_ref.vel.y = y_strength + this.player_ref.body.vel.y;
+        this.ball_ref.rot_vel = -this.direction * r_strength;
+        this.ball_ref.is_handled = false;
+        this.ball_ref.hand_ref = null;
+        Game.PHYS_ENV.mask_table.set_mask(this.player_ref.body.tag, this.ball_ref.tag, false);
+
+        this.shot_charge = 0;
+        this.shot_cooldown = PlayerHand.SHOT_COOLDOWN_TICKS;
+        this.is_handling = false;
+        this.is_dunking = false;
+        this.ball_ref = null;
+    }
+
     step() {
 
         const controls = this.player_ref.controls;
@@ -223,15 +248,36 @@ class PlayerHand extends PhysCircle {
                 this.target_angle = (1 - t) * PlayerHand.MIN_SHOOTING_ANGLE + 
                     t * PlayerHand.MAX_SHOOTING_ANGLE;
             }
+
+            if(this.is_dunking) {
+                if(this.arm_angle > PlayerHand.DUNK_ANGLE) {
+                    // console.log(Math.abs(this.arm_angle - PlayerHand.DUNK_ANGLE), this.shot_charge);
+                    this.dunk();
+                }
+
+                this.shot_charge -= 0.1;
+                if(this.shot_charge < 0) {
+                    this.shot_charge = 0;
+                }
+
+                const t = this.shot_charge;
+                this.target_angle = (1 - t) * PlayerHand.REST_ANGLE + 
+                    t * PlayerHand.MAX_SHOOTING_ANGLE;
+            }
             
             if(this.was_action && !is_action && this.is_shooting) {
-                this.shoot();
+                if(this.can_dunk) {
+                    this.is_dunking = true;
+                    this.is_shooting = false;
+                } else {
+                    this.shoot();
+                }
             }
         } else if(is_action) {
             this.target_angle = PlayerHand.MIN_SHOOTING_ANGLE;
         }
 
-        if(!is_action || (this.is_handling && !this.is_shooting))
+        if((!is_action && !this.is_dunking) || (this.is_handling && !this.is_shooting && !this.is_dunking))
             this.target_angle = PlayerHand.REST_ANGLE;
 
         this.shot_cooldown -= 1;

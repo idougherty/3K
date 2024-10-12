@@ -18,12 +18,20 @@ function clip(v1, v2, n, o) {
     return points;
 }
 
-function debugLine(p1, p2, ctx, color = "red") {
+function debug_line(p1, p2, ctx, color = "red") {
     ctx.strokeStyle = color;
     ctx.beginPath()
     ctx.moveTo(p1.x, p1.y);
     ctx.lineTo(p2.x, p2.y);
     ctx.stroke();
+}
+
+function debug_point(p, ctx, color = "red") {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fill();
 }
 
 function insertion_sort(arr, lambda = (x) => x) {
@@ -298,6 +306,7 @@ class PhysObject {
         this.moi = moi;
 
         this.on_collision = null;
+        this.on_impulse = null;
         this.tag = "";
     }
 
@@ -520,8 +529,58 @@ class CollisionMaskTable {
                 return inner_map.get(inner_key);
             }
         }
-        
+
         return this.default_masks.has(A) || this.default_masks.has(B);
+    }
+}
+
+
+// Restitution overrides, similar to collision masks
+class RestitutionTable {
+
+    constructor() {
+        this.table = new Map();
+        this.default_rests = new Map();
+    }
+
+    add_restitution_override(A, rest) {
+        this.default_rests.set(A, rest);
+    }
+
+    clear_restitution_override(A) {
+        this.default_rests.delete(A);
+    }
+
+    set_restitution(A, B, restitution) {
+        let outer_key = A < B ? A : B;
+        let inner_key = A > B ? A : B;
+
+        if(this.table.has(outer_key)) {
+            let inner_map = this.table.get(outer_key);
+            inner_map.set(inner_key, restitution);
+        } else {
+            let inner_map = new Map([[inner_key, restitution]]);
+            this.table.set(outer_key, inner_map);
+        }
+    }
+
+    get_restitution(A, B) {
+        let outer_key = A < B ? A : B;
+        let inner_key = A > B ? A : B;
+        
+        if(this.table.has(outer_key)) {
+            let inner_map = this.table.get(outer_key);
+            if(inner_map.has(inner_key)) {
+                return inner_map.get(inner_key);
+            }
+        }
+        
+        if(this.default_rests.has(A))
+            return this.default_rests.get(A);
+        if(this.default_rests.has(B))
+            return this.default_rests.get(B);
+        
+        return -1;
     }
 }
 
@@ -532,6 +591,7 @@ class PhysEnv {
         this.intervals = [];
         this.sweep_x = true;
         this.mask_table = new CollisionMaskTable();
+        this.rest_table = new RestitutionTable();
 
         for(const obj of objects) {
             this.add_object(obj);
@@ -624,15 +684,10 @@ class PhysEnv {
             if(s1.on_collision) s1.on_collision(s1, s2, normal);
             if(s2.on_collision) s2.on_collision(s2, s1, Vec2D.mult(normal, -1));
 
-            if(s1.mass == 0 || s2.mass == 0 || masked || !contacts)
+            if(s1.mass == 0 || s2.mass == 0 || masked)
                 continue;
 
-            shuffle(contacts);
-            for(const contact of contacts) {
-                let impulse = this.find_impulse(s1, s2, normal, contact);
-                this.apply_impulse(s1, s2, impulse, contact);
-            }
-
+            this.handle_impulses(s1, s2, contacts, normal);
             this.resolve_intersections(s1, s2, normal, depth);
 
             s1.update();
@@ -654,6 +709,39 @@ class PhysEnv {
         }
 
         return [normal, depth, contacts];
+    }
+
+    handle_impulses(s1, s2, contacts, normal) {
+        if(!contacts || contacts.length == 0) 
+            return;
+
+        let contact = new Vec2D(0, 0);
+        contacts.forEach(c => contact.add(c));
+        contact.div(contacts.length);
+
+        let impulse = this.find_impulse(s1, s2, normal, contact);
+
+        if(impulse.x == 0 && impulse.y == 0)
+            return;
+
+        let s1_collision_info = {
+            normal, impulse, contact, 
+        };
+
+        let s2_collision_info = {
+            normal: Vec2D.mult(normal, -1), 
+            impulse: Vec2D.mult(impulse, -1), 
+            contact
+        };
+
+        let applied_impulse = false;
+        if(s1.on_impulse) 
+            applied_impulse |= s1.on_impulse(s1, s2, s1_collision_info);
+        if(s2.on_impulse && !applied_impulse) 
+            applied_impulse |= s2.on_impulse(s2, s1, s2_collision_info);
+
+        if(!applied_impulse)
+            this.apply_impulse(s1, s2, impulse, contact);
     }
 
     resolve_intersections(s1, s2, normal, depth) {
@@ -695,7 +783,9 @@ class PhysEnv {
         const arm_a = Vec2D.cross(r1, normal);
         const arm_b = Vec2D.cross(r2, normal);
 
-        const rest = s1.material.restitution * s2.material.restitution;
+        let rest = this.rest_table.get_restitution(s1.tag, s2.tag);
+        if(rest == -1)
+            rest = s1.material.restitution * s2.material.restitution;
 
         const m = 1 / s1.mass + 1 / s2.mass + arm_a * arm_a / s1.moi + arm_b * arm_b / s2.moi; 
         const j = (-(rest + 1) * contact_vel) / m;
@@ -893,5 +983,3 @@ class PhysEnv {
         }
     }
 }
-
-let count = 0;

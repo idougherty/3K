@@ -80,8 +80,8 @@ const MATERIAL_BOX = {
     color: "#393",
 };
 
-// for(let i = 0; i < 100; i++) {
-//     let pos = new Vec2D(C_WDTH/2, 0);
+// for(let i = 0; i < 10; i++) {
+//     let pos = new Vec2D(C_WDTH/2 + Math.random(), i*20 + 340);
 //     let box = new PhysPolygon(pos, box_shape, MATERIAL_BOX);
 //     box.tag = "superball"
 //     level.dynamic_objects.push(box);
@@ -94,7 +94,7 @@ const MATERIAL_BOX = {
 
 const MATERIAL_TRAMP = {
     density: Infinity,
-    restitution: 5,
+    restitution: 1,
     s_friction: .2,
     d_friction: .1,
     color: "#66f",
@@ -102,13 +102,23 @@ const MATERIAL_TRAMP = {
 
 let tramp_pos = new Vec2D(C_WDTH * 1/2, C_HGHT * 1.25);
 let tramp = new PhysCircle(tramp_pos, 200, MATERIAL_TRAMP);
-// level.static_objects.push(tramp);
+tramp.tag = "tramp";
+level.static_objects.push(tramp);
+Game.PHYS_ENV.rest_table.add_restitution_override(tramp.tag, 0.9);
 
-tramp.on_collision = (_, other, normal) => {
-    if(other.mass == Infinity || other.mass == 0)
-        return;
+tramp.on_impulse = (_, other, {normal, impulse, contact}) => {
+    if(other.mass == Infinity) 
+        return false;
 
-    other.vel = Vec2D.mult(normal, 400);
+    Game.PHYS_ENV.apply_impulse(tramp, other, impulse, contact);
+
+    const target_impulse = 400;
+
+    let vel_mag = other.vel.dot(normal); 
+    let new_impulse = Vec2D.mult(normal, (target_impulse - vel_mag) * other.mass);
+    Game.PHYS_ENV.apply_impulse(tramp, other, new_impulse, contact);
+    
+    return true;
 }
 
 // for(let i = 0; i < 300; i++) {

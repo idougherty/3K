@@ -199,6 +199,7 @@ class PlayerHand extends PhysCircle {
         this.shot_cooldown = PlayerHand.SHOT_COOLDOWN_TICKS;
         this.is_handling = false;
         this.is_shooting = false;
+        this.is_dunking = false;
         this.ball_ref = null;
     }
 
@@ -223,8 +224,9 @@ class PlayerHand extends PhysCircle {
         if(!this.is_handling || !this.is_dunking)
             return;
 
-        const x_strength = Math.cos(this.arm_angle + Math.PI/2) * 300;
-        const y_strength = Math.sin(this.arm_angle + Math.PI/2) * 300;
+        const shot_angle = this.player_ref.body.angle + this.arm_angle + Math.PI/2;
+        const x_strength = Math.cos(shot_angle) * 300;
+        const y_strength = Math.sin(shot_angle) * 300;
         const r_strength = 0;
 
         this.ball_ref.vel.x = this.direction * x_strength + this.player_ref.body.vel.x;

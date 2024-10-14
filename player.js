@@ -95,7 +95,7 @@ class PlayerBody extends PhysPolygon {
         super(pos, body_shape, MATERIAL_PLAYER);
 
         this.mass = 500;
-        this.moi = Infinity;
+        this.moi = 250000;
         this.tag = `player-body-${player_ref.id}`;
         this.player_ref = player_ref;
     }
@@ -131,6 +131,9 @@ class PlayerBody extends PhysPolygon {
             this.vel.y = -275;
         }
 
+        this.rot_vel += -this.angle * 0.8;
+        this.rot_vel *= 0.85;
+
         this.gravity_strength = is_up && this.vel.y < 0 ? 400 : 600;
         this.is_grounded = false;
     }
@@ -142,6 +145,8 @@ class PlayerHand extends PhysCircle {
     static ARM_LENGTH = 30;
     static REST_ANGLE = Math.PI / 4;
     static DUNK_ANGLE = -Math.PI * 0.25;
+    static MIN_SHOT_ANGLE = Math.PI * 0.45;
+    static MAX_SHOT_ANGLE = Math.PI * 0.3;
     static MIN_SHOOTING_ANGLE = -Math.PI * 0.35;
     static MAX_SHOOTING_ANGLE = -Math.PI * 0.75;
     static SHOT_COOLDOWN_TICKS = 45;
@@ -151,7 +156,7 @@ class PlayerHand extends PhysCircle {
     shot_cooldown = 0;
     is_handling = false;
     is_shooting = false;
-    can_dunk = true;
+    can_dunk = false;
     is_dunking = false;
     was_action = false;
     player_ref = null;
@@ -176,17 +181,16 @@ class PlayerHand extends PhysCircle {
         this.player_ref = player_ref;
     }
 
-    shoot() {
-        if(!this.is_handling || !this.is_shooting)
-            return;
+    acquire_ball(ball_ref) {
+        this.is_handling = true;
+        this.ball_ref = ball_ref;
+        ball_ref.is_handled = true;
+        ball_ref.hand_ref = this;
 
-        const x_strength = this.shot_charge * 225 + 25;
-        const y_strength = this.shot_charge * 100 + 175;
-        const r_strength = this.shot_charge * 25;
+        Game.PHYS_ENV.mask_table.set_mask(ball_ref.tag, this.player_ref.body.tag);
+    }
 
-        this.ball_ref.vel.x = this.direction * x_strength + 0.5 * this.player_ref.body.vel.x;
-        this.ball_ref.vel.y = -y_strength + 0.5 * this.player_ref.body.vel.y;
-        this.ball_ref.rot_vel = -this.direction * r_strength;
+    release_ball() {
         this.ball_ref.is_handled = false;
         this.ball_ref.hand_ref = null;
         Game.PHYS_ENV.mask_table.set_mask(this.player_ref.body.tag, this.ball_ref.tag, false);
@@ -196,6 +200,23 @@ class PlayerHand extends PhysCircle {
         this.is_handling = false;
         this.is_shooting = false;
         this.ball_ref = null;
+    }
+
+    shoot() {
+        if(!this.is_handling || !this.is_shooting)
+            return;
+
+        const strength = 200 * this.shot_charge + 100;
+        const shot_angle = (1 - this.shot_charge) * PlayerHand.MIN_SHOT_ANGLE + this.shot_charge * PlayerHand.MAX_SHOT_ANGLE;
+        const x_strength = Math.cos(shot_angle + this.player_ref.body.angle) * strength;
+        const y_strength = Math.sin(shot_angle + this.player_ref.body.angle) * strength;
+        const r_strength = this.shot_charge * 25;
+
+        this.ball_ref.vel.x = this.direction * x_strength + 0.5 * this.player_ref.body.vel.x;
+        this.ball_ref.vel.y = -y_strength + 0.5 * this.player_ref.body.vel.y;
+        this.ball_ref.rot_vel = -this.direction * r_strength;
+
+        this.release_ball();
     }
 
     dunk() {
@@ -209,15 +230,8 @@ class PlayerHand extends PhysCircle {
         this.ball_ref.vel.x = this.direction * x_strength + this.player_ref.body.vel.x;
         this.ball_ref.vel.y = y_strength + this.player_ref.body.vel.y;
         this.ball_ref.rot_vel = -this.direction * r_strength;
-        this.ball_ref.is_handled = false;
-        this.ball_ref.hand_ref = null;
-        Game.PHYS_ENV.mask_table.set_mask(this.player_ref.body.tag, this.ball_ref.tag, false);
-
-        this.shot_charge = 0;
-        this.shot_cooldown = PlayerHand.SHOT_COOLDOWN_TICKS;
-        this.is_handling = false;
-        this.is_dunking = false;
-        this.ball_ref = null;
+        
+        this.release_ball();
     }
 
     step() {
@@ -251,7 +265,6 @@ class PlayerHand extends PhysCircle {
 
             if(this.is_dunking) {
                 if(this.arm_angle > PlayerHand.DUNK_ANGLE) {
-                    // console.log(Math.abs(this.arm_angle - PlayerHand.DUNK_ANGLE), this.shot_charge);
                     this.dunk();
                 }
 

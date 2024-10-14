@@ -81,7 +81,6 @@ class Game {
         }
 
         for(const player of this.players) {
-            player.body.moi = 500000;
             player.body.material.restitution = 0.8;
         }
 
@@ -92,7 +91,6 @@ class Game {
                 player.body.vel.mult(0);
                 player.body.rot_vel = 0;
                 player.body.angle = 0;
-                player.body.moi = Infinity;
                 player.body.material.restitution = 0;
             }
     

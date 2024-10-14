@@ -45,57 +45,58 @@ class Basketball extends PhysCircle {
     }
 
     draw(ctx) {
-        ctx.strokeStyle = this.material.color
+        ctx.strokeStyle = this.material.color;
         if(this.hand_ref && this.hand_ref.can_dunk) {
             ctx.strokeStyle = "#cc6";
             ctx.shadowColor = "#cc6";
             ctx.shadowBlur = 5;
         }
 
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
 
         ctx.beginPath();
         ctx.arc(this.pos.x, this.pos.y, this.radius, this.angle, 2 * Math.PI + this.angle);
+        ctx.lineTo(this.pos.x, this.pos.y);
         ctx.stroke();
         
-        ctx.beginPath();
-        ctx.arc(
-            this.pos.x + Math.cos(this.angle) * (this.radius + 4), 
-            this.pos.y + Math.sin(this.angle) * (this.radius + 4), 
-            this.radius, 
-            this.angle + Math.PI * 0.75, 
-            this.angle - Math.PI * 0.75
-        );
-        ctx.stroke();
+    //     ctx.beginPath();
+    //     ctx.arc(
+    //         this.pos.x + Math.cos(this.angle) * (this.radius + 4), 
+    //         this.pos.y + Math.sin(this.angle) * (this.radius + 4), 
+    //         this.radius, 
+    //         this.angle + Math.PI * 0.75, 
+    //         this.angle - Math.PI * 0.75
+    //     );
+    //     ctx.stroke();
 
-        ctx.beginPath();
-        ctx.arc(
-            this.pos.x + Math.cos(this.angle + Math.PI) * (this.radius + 4), 
-            this.pos.y + Math.sin(this.angle + Math.PI) * (this.radius + 4), 
-            this.radius, 
-            this.angle - Math.PI * 0.25, 
-            this.angle + Math.PI * 0.25
-        );
-        ctx.stroke();
+    //     ctx.beginPath();
+    //     ctx.arc(
+    //         this.pos.x + Math.cos(this.angle + Math.PI) * (this.radius + 4), 
+    //         this.pos.y + Math.sin(this.angle + Math.PI) * (this.radius + 4), 
+    //         this.radius, 
+    //         this.angle - Math.PI * 0.25, 
+    //         this.angle + Math.PI * 0.25
+    //     );
+    //     ctx.stroke();
 
-        ctx.beginPath();
-        ctx.moveTo(
-            this.pos.x + Math.cos(this.angle) * this.radius,
-            this.pos.y + Math.sin(this.angle) * this.radius
-        );
-        ctx.lineTo(
-            this.pos.x + Math.cos(this.angle + Math.PI) * this.radius,
-            this.pos.y + Math.sin(this.angle + Math.PI) * this.radius
-        );
-        ctx.moveTo(
-            this.pos.x + Math.cos(this.angle + Math.PI / 2) * this.radius,
-            this.pos.y + Math.sin(this.angle + Math.PI / 2) * this.radius
-        );
-        ctx.lineTo(
-            this.pos.x + Math.cos(this.angle - Math.PI / 2) * this.radius,
-            this.pos.y + Math.sin(this.angle - Math.PI / 2) * this.radius
-        );
-        ctx.stroke();
+    //     ctx.beginPath();
+    //     ctx.moveTo(
+    //         this.pos.x + Math.cos(this.angle) * this.radius,
+    //         this.pos.y + Math.sin(this.angle) * this.radius
+    //     );
+    //     ctx.lineTo(
+    //         this.pos.x + Math.cos(this.angle + Math.PI) * this.radius,
+    //         this.pos.y + Math.sin(this.angle + Math.PI) * this.radius
+    //     );
+    //     ctx.moveTo(
+    //         this.pos.x + Math.cos(this.angle + Math.PI / 2) * this.radius,
+    //         this.pos.y + Math.sin(this.angle + Math.PI / 2) * this.radius
+    //     );
+    //     ctx.lineTo(
+    //         this.pos.x + Math.cos(this.angle - Math.PI / 2) * this.radius,
+    //         this.pos.y + Math.sin(this.angle - Math.PI / 2) * this.radius
+    //     );
+    //     ctx.stroke();
 
         ctx.shadowBlur = 0;
     }

@@ -80,10 +80,6 @@ class Game {
             object.vel.add(Vec2D.normalize(dif).mult(power));
         }
 
-        for(const player of this.players) {
-            player.body.material.restitution = 0.8;
-        }
-
         window.setTimeout(() => {
             for(const [idx, player] of this.players.entries()) {
                 let spawn = this.level.player_spawns[idx];
@@ -91,7 +87,6 @@ class Game {
                 player.body.vel.mult(0);
                 player.body.rot_vel = 0;
                 player.body.angle = 0;
-                player.body.material.restitution = 0;
             }
     
             this.ball.pos = new Vec2D(this.level.ball_spawn);

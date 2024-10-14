@@ -86,7 +86,7 @@ class PlayerBody extends PhysPolygon {
 
         const MATERIAL_PLAYER = {
             density: 10,
-            restitution: 0,
+            restitution: 0.5,
             s_friction: 0.3,
             d_friction: 0.3,
             color,
@@ -98,6 +98,8 @@ class PlayerBody extends PhysPolygon {
         this.moi = 250000;
         this.tag = `player-body-${player_ref.id}`;
         this.player_ref = player_ref;
+
+        Game.PHYS_ENV.rest_table.set_restitution(this.tag, "floor", 0.1);
     }
 
     step() {
@@ -145,7 +147,7 @@ class PlayerHand extends PhysCircle {
     static ARM_LENGTH = 30;
     static REST_ANGLE = Math.PI / 4;
     static DUNK_ANGLE = -Math.PI * 0.25;
-    static MIN_SHOT_ANGLE = Math.PI * 0.45;
+    static MIN_SHOT_ANGLE = Math.PI * 0.4;
     static MAX_SHOT_ANGLE = Math.PI * 0.3;
     static MIN_SHOOTING_ANGLE = -Math.PI * 0.35;
     static MAX_SHOOTING_ANGLE = -Math.PI * 0.75;

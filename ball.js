@@ -26,23 +26,12 @@ class Basketball extends PhysCircle {
             other.is_handling || 
             other.shot_cooldown > 0)
             return;
-        
-        other.is_handling = true;
-        other.ball_ref = this;
 
         if(this.is_handled && this.hand_ref != other) {
-            this.hand_ref.is_handling = false;
-            this.hand_ref.is_shooting = false;
-            this.hand_ref.ball_ref = null;
-            this.hand_ref.shot_charge = 0;
-            this.hand_ref.shot_cooldown = PlayerHand.SHOT_COOLDOWN_TICKS;
-            Game.PHYS_ENV.mask_table.set_mask(this.tag, this.hand_ref.player_ref.body.tag, false);
+            this.hand_ref.release_ball();
         }
 
-        this.is_handled = true;
-        this.hand_ref = other;
-
-        Game.PHYS_ENV.mask_table.set_mask(this.tag, this.hand_ref.player_ref.body.tag);
+        other.acquire_ball(this);
     }
 
     step() {

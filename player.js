@@ -226,6 +226,7 @@ class PlayerHand extends PhysCircle {
         const is_left = Input.is_key_pressed(controls.left);
         const is_right = Input.is_key_pressed(controls.right);
         const is_action = Input.is_key_pressed(controls.action);
+        this.can_dunk = this.shot_charge > 0.5
 
         if(is_right && !is_left) {
             this.direction = 1;
@@ -250,12 +251,7 @@ class PlayerHand extends PhysCircle {
             }
 
             if(this.is_dunking) {
-                if(this.arm_angle > PlayerHand.DUNK_ANGLE) {
-                    // console.log(Math.abs(this.arm_angle - PlayerHand.DUNK_ANGLE), this.shot_charge);
-                    this.dunk();
-                }
-
-                this.shot_charge -= 0.1;
+                this.shot_charge -= 0.15;
                 if(this.shot_charge < 0) {
                     this.shot_charge = 0;
                 }
@@ -263,6 +259,10 @@ class PlayerHand extends PhysCircle {
                 const t = this.shot_charge;
                 this.target_angle = (1 - t) * PlayerHand.REST_ANGLE + 
                     t * PlayerHand.MAX_SHOOTING_ANGLE;
+
+                if(this.arm_angle > PlayerHand.DUNK_ANGLE) {
+                    this.dunk();
+                }
             }
             
             if(this.was_action && !is_action && this.is_shooting) {

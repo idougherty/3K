@@ -121,7 +121,7 @@ tramp.on_impulse = (_, other, {normal, impulse, contact}) => {
     return true;
 }
 
-// for(let i = 0; i < 300; i++) {
+// for(let i = 0; i < 50; i++) {
 
 //     const MATERIAL_SUPERBALL = {
 //         density: .1,

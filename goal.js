@@ -65,13 +65,14 @@ class Goal {
 
 class DunkHitbox extends PhysPolygon {
     constructor(goal_ref, goal_pos) {
-        const size = Goal.RIM_WDTH * 3;
+        const width = Goal.RIM_WDTH * 3.5;
+        const height = Goal.RIM_WDTH * 3;
 
         const hitbox_shape = [
             new Vec2D(0, 0),
-            new Vec2D(0, size),
-            new Vec2D(size, size),
-            new Vec2D(size, 0),
+            new Vec2D(0, height),
+            new Vec2D(width, height),
+            new Vec2D(width, 0),
         ];
 
         const MATERIAL_HITBOX = {
@@ -82,7 +83,7 @@ class DunkHitbox extends PhysPolygon {
             color: "#ee60"
         }
 
-        let pos = new Vec2D(goal_pos.x + size / 4 * goal_ref.dir, goal_pos.y - size/2);
+        let pos = new Vec2D(goal_pos.x + (width / 2 - Goal.RIM_WDTH/2) * goal_ref.dir, goal_pos.y - height/2);
         super(pos, hitbox_shape, MATERIAL_HITBOX);
         Game.PHYS_ENV.add_object(this);
 

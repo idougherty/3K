@@ -105,14 +105,19 @@ class GoalHitbox {
     bottom_hitbox = null;
 
     is_top = false;
+    is_middle = false;
     is_bottom = false;
+
+    is_scoring_primed = false;
     
     constructor(goal_ref, pos, on_score) {
+        const THICKNESS = 10;
+
         const hitbox_shape = [
             new Vec2D(0, 0),
             new Vec2D(Goal.RIM_WDTH, 0),
-            new Vec2D(Goal.RIM_WDTH, 10),
-            new Vec2D(0, 10),
+            new Vec2D(Goal.RIM_WDTH, THICKNESS),
+            new Vec2D(0, THICKNESS),
         ];
 
         const MATERIAL_HITBOX = {
@@ -123,15 +128,18 @@ class GoalHitbox {
             color: "#ee60"
         }
 
-        let top_pos = new Vec2D(pos.x, pos.y - 10);
+        let top_pos = new Vec2D(pos.x, pos.y - Basketball.SIZE - THICKNESS);
         this.top_hitbox = new PhysPolygon(top_pos, hitbox_shape, MATERIAL_HITBOX);
-        this.top_hitbox.is_active = false;
         this.top_hitbox.on_collision = this.detect_ball;
         Game.PHYS_ENV.add_object(this.top_hitbox);
 
-        let bottom_pos = new Vec2D(pos.x, pos.y + 10);
+        let middle_pos = new Vec2D(pos.x, pos.y);
+        this.middle_hitbox = new PhysPolygon(middle_pos, hitbox_shape, MATERIAL_HITBOX);
+        this.middle_hitbox.on_collision = this.detect_ball;
+        Game.PHYS_ENV.add_object(this.middle_hitbox);
+
+        let bottom_pos = new Vec2D(pos.x, pos.y + Basketball.SIZE + THICKNESS);
         this.bottom_hitbox = new PhysPolygon(bottom_pos, hitbox_shape, MATERIAL_HITBOX);
-        this.bottom_hitbox.is_active = false;
         this.bottom_hitbox.on_collision = this.detect_ball;
         Game.PHYS_ENV.add_object(this.bottom_hitbox);
 
@@ -140,17 +148,24 @@ class GoalHitbox {
     }
 
     detect_ball(hitbox, other) {
-        if(other.tag == "ball") {
+        if(other.tag == "ball")
             hitbox.is_active = true;
-        }
     }
 
     step() {
-        if(this.top_hitbox.is_active && this.bottom_hitbox.is_active) {
-            this.on_score();
-        }
+        if(this.top_hitbox.is_active)
+            this.is_scoring_primed = false;
 
+        if(this.top_hitbox.is_active && this.middle_hitbox.is_active)
+            this.is_scoring_primed = true;
+
+        if(this.middle_hitbox.is_active && this.bottom_hitbox.is_active && this.is_scoring_primed) {
+            this.on_score();
+            this.is_scoring_primed = false;
+        }
+        
         this.top_hitbox.is_active = false;
+        this.middle_hitbox.is_active = false;
         this.bottom_hitbox.is_active = false;
     }
 }

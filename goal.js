@@ -116,8 +116,8 @@ class GoalHitbox {
 
         const hitbox_shape = [
             new Vec2D(0, 0),
-            new Vec2D(Goal.RIM_WDTH, 0),
-            new Vec2D(Goal.RIM_WDTH, THICKNESS),
+            new Vec2D(Goal.RIM_WDTH * 0.8, 0),
+            new Vec2D(Goal.RIM_WDTH * 0.8, THICKNESS),
             new Vec2D(0, THICKNESS),
         ];
 

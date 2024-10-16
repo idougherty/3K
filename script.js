@@ -8,9 +8,9 @@ const C_HGHT = canvas.height;
 let game = new Game();
 
 let level = new Level();
-level.ball_spawn = new Vec2D(C_WDTH / 3, C_HGHT * 2/3);
-level.player_spawns[0] = new Vec2D(C_WDTH * 2/5, C_HGHT * 2/3);
-level.player_spawns[1] = new Vec2D(C_WDTH * 3/4, C_HGHT * 2/3);
+level.ball_spawn = new Vec2D(C_WDTH / 2, C_HGHT * 2/3);
+level.player_spawns[0] = new Vec2D(C_WDTH * 1/6, C_HGHT * 4/5);
+level.player_spawns[1] = new Vec2D(C_WDTH * 5/6, C_HGHT * 4/5);
 level.goal_spawns[0] = {pos:  new Vec2D(C_WDTH * 0.1, C_HGHT * 0.6), dir: 1};
 level.goal_spawns[1] = {pos:  new Vec2D(C_WDTH * 0.9, C_HGHT * 0.6), dir: -1};
 
@@ -92,21 +92,7 @@ const MATERIAL_BOX = {
 // box.tag = "box";
 // level.dynamic_objects.push(box);
 
-const MATERIAL_TRAMP = {
-    density: Infinity,
-    restitution: 1,
-    s_friction: .2,
-    d_friction: .1,
-    color: "#66f",
-};
-
-let tramp_pos = new Vec2D(C_WDTH * 1/4, C_HGHT * 1.19);
-let tramp = new PhysCircle(tramp_pos, 150, MATERIAL_TRAMP);
-tramp.tag = "tramp";
-level.static_objects.push(tramp);
-Game.PHYS_ENV.rest_table.add_restitution_override(tramp.tag, 0.9);
-
-tramp.on_impulse = (_, other, {normal, impulse, contact}) => {
+let tramp_bounce = (tramp, other, {normal, impulse, contact}) => {
     if(other.mass == Infinity) 
         return false;
 
@@ -120,6 +106,28 @@ tramp.on_impulse = (_, other, {normal, impulse, contact}) => {
 
     return true;
 }
+
+const MATERIAL_TRAMP = {
+    density: Infinity,
+    restitution: 1,
+    s_friction: .2,
+    d_friction: .1,
+    color: "#66f",
+};
+
+let tramp_pos = new Vec2D(C_WDTH * 2/7, C_HGHT * 1.19);
+let tramp = new PhysCircle(tramp_pos, 150, MATERIAL_TRAMP);
+tramp.tag = "tramp";
+tramp.on_impulse = tramp_bounce;
+level.static_objects.push(tramp);
+Game.PHYS_ENV.rest_table.add_restitution_override(tramp.tag, 0.9);
+
+tramp_pos = new Vec2D(C_WDTH * 5/7, C_HGHT * 1.19);
+tramp = new PhysCircle(tramp_pos, 150, MATERIAL_TRAMP);
+tramp.tag = "tramp";
+tramp.on_impulse = tramp_bounce;
+level.static_objects.push(tramp);
+Game.PHYS_ENV.rest_table.add_restitution_override(tramp.tag, 0.9);
 
 // for(let i = 0; i < 50; i++) {
 

@@ -676,16 +676,16 @@ class PhysEnv {
         for(let [s1, s2] of this.sweep_and_prune()) {
             if(!(simplex = this.GJK(s1, s2)))
                 continue;
+            
+            if(s1.on_collision) s1.on_collision(s1, s2);
+            if(s2.on_collision) s2.on_collision(s2, s1);
 
             let masked = this.mask_table.is_masked(s1.tag, s2.tag);
 
-            let [normal, depth, contacts] = this.find_collision_data(s1, s2, simplex);
-
-            if(s1.on_collision) s1.on_collision(s1, s2, normal);
-            if(s2.on_collision) s2.on_collision(s2, s1, Vec2D.mult(normal, -1));
-
             if(s1.mass == 0 || s2.mass == 0 || masked)
                 continue;
+
+            let [normal, depth, contacts] = this.find_collision_data(s1, s2, simplex);
 
             this.handle_impulses(s1, s2, contacts, normal);
             this.resolve_intersections(s1, s2, normal, depth);

@@ -25,6 +25,8 @@ class Goal {
             new Vec2D(10, 100),
             new Vec2D(10, 0),
         ];
+
+        this.dir = dir;
     
         this.backboard = new PhysPolygon(pos, board_shape, MATERIAL_BBOARD);
         Game.PHYS_ENV.add_object(this.backboard);
@@ -41,6 +43,7 @@ class Goal {
         this.net = new Net(net_pos);
 
         this.scoring_hitbox = new GoalHitbox(this, net_pos, on_score);
+        this.dunk_hitbox = new DunkHitbox(this, net_pos);
     }
 
     step() {
@@ -57,6 +60,41 @@ class Goal {
     
         ctx.strokeStyle = "#ea6";
         ctx.stroke();
+    }
+}
+
+class DunkHitbox extends PhysPolygon {
+    constructor(goal_ref, goal_pos) {
+        const size = Goal.RIM_WDTH * 3;
+
+        const hitbox_shape = [
+            new Vec2D(0, 0),
+            new Vec2D(0, size),
+            new Vec2D(size, size),
+            new Vec2D(size, 0),
+        ];
+
+        const MATERIAL_HITBOX = {
+            density: 0,
+            s_friction: 0,
+            d_friction: 0,
+            restitution: 0,
+            color: "#ee60"
+        }
+
+        let pos = new Vec2D(goal_pos.x + size / 4 * goal_ref.dir, goal_pos.y - size/2);
+        super(pos, hitbox_shape, MATERIAL_HITBOX);
+        Game.PHYS_ENV.add_object(this);
+
+        this.goal_ref = goal_ref;
+        this.on_collision = this.handle_contact;
+    }
+
+    handle_contact(_, other) {
+        if(!other.tag.startsWith("player-hand"))
+            return;
+
+        other.is_dunk_position = true;
     }
 }
 

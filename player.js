@@ -145,12 +145,12 @@ class PlayerHand extends PhysCircle {
 
     static SIZE = 5;
     static ARM_LENGTH = 30;
-    static REST_ANGLE = Math.PI / 4;
-    static DUNK_ANGLE = -Math.PI * 0.25;
-    static MIN_SHOT_ANGLE = Math.PI * 0.4;
-    static MAX_SHOT_ANGLE = Math.PI * 0.3;
-    static MIN_SHOOTING_ANGLE = -Math.PI * 0.35;
-    static MAX_SHOOTING_ANGLE = -Math.PI * 0.75;
+    static REST_ANGLE = 0.25 * Math.PI;
+    static DUNK_ANGLE = -0.25 * Math.PI;
+    static MIN_SHOT_ANGLE = -0.4 * Math.PI;
+    static MAX_SHOT_ANGLE = -0.3 * Math.PI;
+    static MIN_SHOOTING_ANGLE = -0.35 * Math.PI;
+    static MAX_SHOOTING_ANGLE = -0.75 * Math.PI;
     static SHOT_COOLDOWN_TICKS = 45;
 
     direction = 1;
@@ -211,13 +211,17 @@ class PlayerHand extends PhysCircle {
             return;
 
         const strength = 200 * this.shot_charge + 100;
-        const shot_angle = (1 - this.shot_charge) * PlayerHand.MIN_SHOT_ANGLE + this.shot_charge * PlayerHand.MAX_SHOT_ANGLE;
-        const x_strength = Math.cos(this.player_ref.body.angle - this.direction * shot_angle) * strength;
-        const y_strength = Math.sin(this.player_ref.body.angle - this.direction * shot_angle) * strength;
+        const hand_angle = (1 - this.shot_charge) * PlayerHand.MIN_SHOT_ANGLE + this.shot_charge * PlayerHand.MAX_SHOT_ANGLE;
+        const base_angle = this.player_ref.body.angle + (this.direction == -1 ? Math.PI : 0);
+        const shot_angle = base_angle + this.direction * hand_angle;
+
+        const x_strength = Math.cos(shot_angle) * strength;
+        const y_strength = Math.sin(shot_angle) * strength;
         const r_strength = this.shot_charge * 25;
+        console.log(shot_angle / Math.PI, this.direction);
 
         this.ball_ref.vel.x = x_strength + 0.5 * this.player_ref.body.vel.x;
-        this.ball_ref.vel.y = -y_strength + 0.5 * this.player_ref.body.vel.y;
+        this.ball_ref.vel.y = y_strength + 0.5 * this.player_ref.body.vel.y;
         this.ball_ref.rot_vel = -this.direction * r_strength;
 
         this.release_ball();

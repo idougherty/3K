@@ -212,11 +212,11 @@ class PlayerHand extends PhysCircle {
 
         const strength = 200 * this.shot_charge + 100;
         const shot_angle = (1 - this.shot_charge) * PlayerHand.MIN_SHOT_ANGLE + this.shot_charge * PlayerHand.MAX_SHOT_ANGLE;
-        const x_strength = Math.cos(shot_angle + this.player_ref.body.angle) * strength;
-        const y_strength = Math.sin(shot_angle + this.player_ref.body.angle) * strength;
+        const x_strength = Math.cos(this.player_ref.body.angle - this.direction * shot_angle) * strength;
+        const y_strength = Math.sin(this.player_ref.body.angle - this.direction * shot_angle) * strength;
         const r_strength = this.shot_charge * 25;
 
-        this.ball_ref.vel.x = this.direction * x_strength + 0.5 * this.player_ref.body.vel.x;
+        this.ball_ref.vel.x = x_strength + 0.5 * this.player_ref.body.vel.x;
         this.ball_ref.vel.y = -y_strength + 0.5 * this.player_ref.body.vel.y;
         this.ball_ref.rot_vel = -this.direction * r_strength;
 

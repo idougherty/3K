@@ -97,7 +97,7 @@ class PlayerBody extends PhysPolygon {
         super(pos, body_shape, MATERIAL_PLAYER);
 
         this.mass = 500;
-        this.moi = 250000;
+        this.moi = 300000;
         this.tag = `player-body-${player_ref.id}`;
         this.player_ref = player_ref;
 
@@ -112,18 +112,14 @@ class PlayerBody extends PhysPolygon {
         const is_up = Input.is_key_pressed(controls.up);
 
         const max_speed = this.player_ref.hand.is_handling ? 150 : 200;
-        const speed_up = this.is_grounded ? 20 : 10;
+        const speed_up = this.is_grounded ? 20 : 8;
         const slow_down = this.is_grounded ? 0.9 : 0.99;
 
-        let acc = 0;
+        let dir = is_right && !is_left ? 1 : is_left && !is_right ? -1 : 0;
+        let acc = Math.abs(this.vel.x) < max_speed ? dir * speed_up : 0;
 
-        if(is_right && !is_left) {
-            if(Math.abs(this.vel.x) < max_speed)
-                acc += speed_up;
-        } else if (is_left && !is_right) {
-            if(Math.abs(this.vel.x) < max_speed)
-                acc -= speed_up;
-        } 
+        if(this.is_grounded)
+            this.rot_vel += dir * 0.1;
         
         this.vel.x += acc;
 
@@ -133,10 +129,16 @@ class PlayerBody extends PhysPolygon {
 
         if(is_up && this.is_grounded) {
             this.vel.y = -275;
+
+            if(is_left && !is_right)
+                this.rot_vel -= 0.9;
+
+            if(is_right && !is_left)
+                this.rot_vel += 0.9;
         }
 
-        this.rot_vel += -this.angle * 0.8;
-        this.rot_vel *= 0.85;
+        this.rot_vel += -this.angle * (this.is_grounded ? 0.8 : 0.4);
+        this.rot_vel *= (this.is_grounded ? 0.85 : 0.95);
 
         this.gravity_strength = is_up && this.vel.y < 0 ? 400 : 600;
         this.is_grounded = false;
@@ -350,9 +352,11 @@ class PlayerGroundHitbox extends PhysCircle {
     }
 
     step() {
-        let {x, y} = this.body_ref.pos;
-        this.pos.x = x;
-        this.pos.y = y + PlayerBody.HEIGHT / 2;
+        const pos = this.body_ref.pos;
+        const foot_pos = Vec2D.rotate(pos, new Vec2D(pos.x, pos.y + PlayerBody.HEIGHT / 2), this.body_ref.angle).add(pos);
+
+        this.pos.x = foot_pos.x;
+        this.pos.y = foot_pos.y;
     }
 
 }

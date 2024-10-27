@@ -5,12 +5,14 @@ class PlayerFactory {
         {
             left: "KeyA",
             right: "KeyD",
+            down: "KeyS",
             up: "KeyW",
             action: "KeyF",
         },
         {
             left: "ArrowLeft",
             right: "ArrowRight",
+            down: "ArrowDown",
             up: "ArrowUp",
             action: "KeyM",
         }
@@ -31,7 +33,7 @@ class Player {
 
     static ID = 0;
 
-    static JUMPABLE_TAGS = ["player-body", "ball", "floor", "superball"];
+    static JUMPABLE_TAGS = ["player-body", "ball", "floor", "platform"];
 
     constructor(pos, controls, color) {
         this.controls = controls;
@@ -339,8 +341,7 @@ class PlayerGroundHitbox extends PhysCircle {
     }
 
     handle_ground_state(_, other) {
-        if(other != this.body_ref && (Player.JUMPABLE_TAGS.includes(other.tag) ||
-            other.tag.startsWith("player-body")))
+        if(other != this.body_ref && (Player.JUMPABLE_TAGS.some(x => other.tag.startsWith(x))))
             this.body_ref.is_grounded = true;
     }
 

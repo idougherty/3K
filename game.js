@@ -134,10 +134,10 @@ class Game {
         ctx.fillStyle = "#444";
         ctx.fillRect(0, 0, C_WDTH, C_HGHT);
 
+        Game.PHYS_ENV.draw_objects(ctx);
+
         for(const goal of this.goals)
             goal.draw(ctx);
-
-        Game.PHYS_ENV.draw_objects(ctx);
     }
     
     draw_loop() {

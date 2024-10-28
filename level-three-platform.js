@@ -4,8 +4,8 @@ function level_three_platform(C_HGHT, C_HGHT) {
     level.ball_spawn = new Vec2D(C_WDTH / 2, C_HGHT * 1/3);
     level.player_spawns[0] = new Vec2D(C_WDTH * 1/6, C_HGHT * 4/5);
     level.player_spawns[1] = new Vec2D(C_WDTH * 5/6, C_HGHT * 4/5);
-    level.goal_spawns[0] = {pos:  new Vec2D(C_WDTH * 0.1, C_HGHT * 0.55), dir: 1};
-    level.goal_spawns[1] = {pos:  new Vec2D(C_WDTH * 0.9, C_HGHT * 0.55), dir: -1};
+    level.goal_spawns[0] = {pos:  new Vec2D(C_WDTH * 0.1, C_HGHT * 0.52), dir: 1};
+    level.goal_spawns[1] = {pos:  new Vec2D(C_WDTH * 0.9, C_HGHT * 0.52), dir: -1};
     
     const MATERIAL_FLOOR = {
         density: Infinity,

@@ -95,6 +95,9 @@ class DunkHitbox extends PhysPolygon {
         if(!other.tag.startsWith("player-hand"))
             return;
 
+        if(other.direction == this.goal_ref.dir)
+            return;
+
         other.is_dunk_position = true;
     }
 }

@@ -36,7 +36,6 @@ class Game {
 
         for(const object of level.dynamic_objects) {
             Game.PHYS_ENV.add_object(object);
-            this.object_spawns.set(object, new Vec2D(object.pos));
         }
 
         for(const object of level.static_objects) {

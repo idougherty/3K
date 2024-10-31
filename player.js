@@ -119,7 +119,7 @@ class PlayerBody extends PhysPolygon {
         let acc = Math.abs(this.vel.x) < max_speed ? dir * speed_up : 0;
 
         if(this.is_grounded)
-            this.rot_vel += dir * 0.1;
+            this.rot_vel += dir * 0.02;
         
         this.vel.x += acc;
 
@@ -129,16 +129,11 @@ class PlayerBody extends PhysPolygon {
 
         if(is_up && this.is_grounded) {
             this.vel.y = -275;
-
-            if(is_left && !is_right)
-                this.rot_vel -= 0.9;
-
-            if(is_right && !is_left)
-                this.rot_vel += 0.9;
+            this.rot_vel += 1.5 * dir;
         }
 
-        this.rot_vel += -this.angle * (this.is_grounded ? 0.8 : 0.4);
-        this.rot_vel *= (this.is_grounded ? 0.85 : 0.95);
+        this.rot_vel += -this.angle * (this.is_grounded ? 0.8 : 0.3);
+        this.rot_vel *= (this.is_grounded ? 0.85 : 0.90);
 
         this.gravity_strength = is_up && this.vel.y < 0 ? 400 : 600;
         this.is_grounded = false;
@@ -151,8 +146,7 @@ class PlayerHand extends PhysCircle {
     static ARM_LENGTH = 30;
     static REST_ANGLE = 0.25 * Math.PI;
     static DUNK_ANGLE = -0.25 * Math.PI;
-    static MIN_SHOT_ANGLE = -0.4 * Math.PI;
-    static MAX_SHOT_ANGLE = -0.3 * Math.PI;
+    static SHOT_ANGLE = -0.3 * Math.PI;
     static MIN_SHOOTING_ANGLE = -0.35 * Math.PI;
     static MAX_SHOOTING_ANGLE = -0.75 * Math.PI;
     static SHOT_COOLDOWN_TICKS = 45;
@@ -215,9 +209,8 @@ class PlayerHand extends PhysCircle {
             return;
 
         const strength = 200 * this.shot_charge + 100;
-        const hand_angle = (1 - this.shot_charge) * PlayerHand.MIN_SHOT_ANGLE + this.shot_charge * PlayerHand.MAX_SHOT_ANGLE;
         const base_angle = this.player_ref.body.angle + (this.direction == -1 ? Math.PI : 0);
-        const shot_angle = base_angle + this.direction * hand_angle;
+        const shot_angle = base_angle + this.direction * PlayerHand.SHOT_ANGLE;
 
         const x_strength = Math.cos(shot_angle) * strength;
         const y_strength = Math.sin(shot_angle) * strength;

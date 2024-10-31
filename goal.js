@@ -33,10 +33,12 @@ class Goal {
     
         let rim_pos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH) * dir, pos.y + 35);
         this.f_rim = new PhysCircle(rim_pos, 5, MATERIAL_RIM);
+        this.f_rim.on_collision = this.handle_rim_contact;
         Game.PHYS_ENV.add_object(this.f_rim);
     
         rim_pos = new Vec2D(pos.x + 20 * dir, pos.y + 35);
         this.b_rim = new PhysCircle(rim_pos, 5, MATERIAL_RIM);
+        this.b_rim.on_collision = this.handle_rim_contact;
         Game.PHYS_ENV.add_object(this.b_rim);
 
         let net_pos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH / 2) * dir, pos.y + 35);
@@ -44,6 +46,14 @@ class Goal {
 
         this.scoring_hitbox = new GoalHitbox(this, net_pos, on_score);
         this.dunk_hitbox = new DunkHitbox(this, net_pos);
+    }
+
+    handle_rim_contact(_, other) {
+        if(other.tag != "ball")
+            return;
+
+        if(other.is_handled && other.hand_ref.is_dunking)
+            other.hand_ref.dunk();
     }
 
     step() {

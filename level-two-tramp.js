@@ -2,6 +2,14 @@ function level_two_tramp(C_WDTH, C_HGHT) {
 
     let level = level_empty(C_WDTH, C_HGHT);
 
+    const MATERIAL_FLOOR = {
+        density: Infinity,
+        restitution: .7,
+        s_friction: .2,
+        d_friction: .1,
+        color: "#eee",
+    };
+    
     let platform_shape = [
         new Vec2D(0, 0),
         new Vec2D(0, 15),

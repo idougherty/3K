@@ -129,11 +129,12 @@ class PlayerBody extends PhysPolygon {
 
         if(is_up && this.is_grounded) {
             this.vel.y = -275;
-            this.rot_vel += 1.5 * dir;
+            this.vel.x += 25 * dir;
+            this.rot_vel += 0.9 * dir;
         }
 
-        this.rot_vel += -this.angle * (this.is_grounded ? 0.8 : 0.3);
-        this.rot_vel *= (this.is_grounded ? 0.85 : 0.90);
+        this.rot_vel += -this.angle * (this.is_grounded ? 0.8 : 0.25);
+        this.rot_vel *= (this.is_grounded ? 0.85 : 0.95);
 
         this.gravity_strength = is_up && this.vel.y < 0 ? 400 : 600;
         this.is_grounded = false;

@@ -51,6 +51,18 @@ function level_two_tramp(C_HGHT, C_HGHT) {
     let right_wall = new PhysPolygon(right_wall_pos, right_wall_shape, MATERIAL_FLOOR);
     level.static_objects.push(right_wall);
 
+    let platform_shape = [
+        new Vec2D(0, 0),
+        new Vec2D(0, 15),
+        new Vec2D(150, 15),
+        new Vec2D(150, 0),
+    ];
+
+    let plat_pos = new Vec2D(C_WDTH * 1/2, C_HGHT * 0.75);
+    let plat = new PhysPolygon(plat_pos, platform_shape, MATERIAL_FLOOR);
+    plat.tag = "floor";
+    level.static_objects.push(plat);
+
     let tramp_bounce = (tramp, other, {normal, impulse, contact}) => {
         if(other.mass == Infinity) 
             return false;

@@ -26,16 +26,16 @@ function level_empty(C_WDTH, C_HGHT) {
 
     let left_wall_shape = [
         new Vec2D(-WALL_WDTH,  -WALL_WDTH),
-        new Vec2D(WALL_WDTH,  WALL_WDTH),
-        new Vec2D(WALL_WDTH, C_HGHT - WALL_WDTH),
         new Vec2D(-WALL_WDTH, C_HGHT + WALL_WDTH),
+        new Vec2D(WALL_WDTH, C_HGHT - WALL_WDTH),
+        new Vec2D(WALL_WDTH,  WALL_WDTH),
     ];
 
     let right_wall_shape = [
         new Vec2D(-WALL_WDTH,  WALL_WDTH),
-        new Vec2D(WALL_WDTH,  -WALL_WDTH),
-        new Vec2D(WALL_WDTH, C_HGHT + WALL_WDTH),
         new Vec2D(-WALL_WDTH, C_HGHT - WALL_WDTH),
+        new Vec2D(WALL_WDTH, C_HGHT + WALL_WDTH),
+        new Vec2D(WALL_WDTH,  -WALL_WDTH),
     ];
 
     let floor_pos = new Vec2D(C_WDTH * 1/2, C_HGHT);

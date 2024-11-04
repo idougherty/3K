@@ -2,6 +2,9 @@ function level_two_tramp(C_WDTH, C_HGHT) {
 
     let level = level_empty(C_WDTH, C_HGHT);
 
+    level.goal_spawns[0] = {pos:  new Vec2D(C_WDTH * 0.1, C_HGHT * 0.57), dir: 1};
+    level.goal_spawns[1] = {pos:  new Vec2D(C_WDTH * 0.9, C_HGHT * 0.57), dir: -1};
+
     const MATERIAL_FLOOR = {
         density: Infinity,
         restitution: .7,

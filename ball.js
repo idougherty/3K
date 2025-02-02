@@ -4,6 +4,7 @@ class Basketball extends PhysCircle {
 
     is_handled = false;
     hand_ref = null;
+    last_touch = null;
 
     constructor(pos) {
 

@@ -8,6 +8,7 @@ class PlayerFactory {
             down: "KeyS",
             up: "KeyW",
             action: "KeyF",
+            special:"KeyG",
         },
         {
             left: "ArrowLeft",
@@ -15,6 +16,7 @@ class PlayerFactory {
             down: "ArrowDown",
             up: "ArrowUp",
             action: "KeyM",
+            special:"Comma",
         }
     ];
 
@@ -155,6 +157,8 @@ class PlayerHand extends PhysCircle {
     direction = 1;
     shot_charge = 0;
     shot_cooldown = 0;
+    special_cooldown = 0;
+    max_cooldown = 250;
     is_handling = false;
     is_shooting = false;
     is_dunk_position = false;
@@ -163,6 +167,7 @@ class PlayerHand extends PhysCircle {
     was_action = false;
     player_ref = null;
     ball_ref = null;
+    last_ball = null;
 
     target_angle = PlayerHand.REST_ANGLE;
     arm_angle = PlayerHand.REST_ANGLE;
@@ -186,7 +191,9 @@ class PlayerHand extends PhysCircle {
     acquire_ball(ball_ref) {
         this.is_handling = true;
         this.ball_ref = ball_ref;
+        this.last_ball = ball_ref;
         ball_ref.is_handled = true;
+        ball_ref.last_touch = this;
         ball_ref.hand_ref = this;
 
         Game.PHYS_ENV.mask_table.set_mask(ball_ref.tag, this.player_ref.body.tag);
@@ -241,19 +248,45 @@ class PlayerHand extends PhysCircle {
         this.release_ball();
     }
 
+    //This all probably goes in player class?
+    special() {
+        if(!this.last_ball) {
+            return;
+        }
+
+        //Assuming special will be overridden when picked, but only one for now
+        if(this.last_ball.last_touch == this && !this.is_handling && this.special_cooldown == 0) {
+            //either a constant force or relative to distance, either setting or adding to velocity
+            const pull_dir = Vec2D.normalize(Vec2D.sub(this.last_ball.pos,this.pos));
+            this.last_ball.vel = Vec2D.mult(pull_dir,250);
+            //this.last_ball.vel = Vec2D.add(this.last_ball.vel,Vec2D.div(Vec2D.sub(this.pos,this.last_ball.pos),100));
+            this.player_ref.body.rot_vel += 4*Math.sign(pull_dir.x);
+            //this.last_ball = null;
+            this.special_cooldown = this.max_cooldown;
+        }
+    }
+
     step() {
 
         const controls = this.player_ref.controls;
         const is_left = Input.is_key_pressed(controls.left);
         const is_right = Input.is_key_pressed(controls.right);
         const is_action = Input.is_key_pressed(controls.action);
+        const is_special = Input.is_key_pressed(controls.special);
 
         this.can_dunk = this.is_dunk_position && this.shot_charge > 0.5
+        this.special_cooldown = Math.max(this.special_cooldown-1,0);
+        console.log(this.special_cooldown);
+        // draw bar on player; width is playerwidth*special_cooldown/max_cooldown(probably times like 1.2)
 
         if(is_right && !is_left) {
             this.direction = 1;
         } else if (is_left && !is_right) {
             this.direction = -1;
+        }
+
+        if(is_special) {
+            this.special();
         }
 
         if(this.is_handling) {

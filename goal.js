@@ -2,7 +2,7 @@
 class Goal {
     static RIM_WDTH = 45;
 
-    constructor(pos, dir = 1, on_score) {
+    constructor(pos, dir = 1, team_id, on_score) {
         const MATERIAL_BBOARD = {
             density: Infinity,
             restitution: 0.8,
@@ -27,6 +27,8 @@ class Goal {
         ];
 
         this.dir = dir;
+        this.team_id = team_id;
+        console.log(team_id);
     
         this.backboard = new PhysPolygon(pos, board_shape, MATERIAL_BBOARD);
         Game.PHYS_ENV.add_object(this.backboard);
@@ -44,7 +46,7 @@ class Goal {
         let net_pos = new Vec2D(pos.x + (20 + Goal.RIM_WDTH / 2) * dir, pos.y + 35);
         this.net = new Net(net_pos);
 
-        this.scoring_hitbox = new GoalHitbox(this, net_pos, on_score);
+        this.scoring_hitbox = new GoalHitbox(this, net_pos, () => on_score(team_id));
         this.dunk_hitbox = new DunkHitbox(this, net_pos);
     }
 

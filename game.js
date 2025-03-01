@@ -24,6 +24,7 @@ class Game {
     object_spawns = new Map();
     
     players = [];
+    scores = [];
     ball;
     goals = [];
     
@@ -33,6 +34,7 @@ class Game {
 
     load_level(level) {
         this.level = level;
+        this.scores = new Array(level.num_teams).fill(0);
 
         for(const object of level.dynamic_objects) {
             Game.PHYS_ENV.add_object(object);
@@ -42,12 +44,12 @@ class Game {
             Game.PHYS_ENV.add_object(object);
         }
 
-        for(const spawn of level.player_spawns) {
-            this.players.push(PlayerFactory.create_player(spawn));
+        for(const {pos, team_id} of level.player_spawns) {
+            this.players.push(PlayerFactory.create_player(pos, team_id));
         }
 
-        for(const {pos, dir} of level.goal_spawns) {
-            this.goals.push(new Goal(pos, dir, this.on_score.bind(this)));
+        for(const {pos, dir, team_id} of level.goal_spawns) {
+            this.goals.push(new Goal(pos, dir, team_id, this.on_score.bind(this)));
         }
         
         this.ball = new Basketball(level.ball_spawn);
@@ -62,11 +64,13 @@ class Game {
         this.draw_loop();
     }
 
-    on_score() {
+    on_score(team_id) {
         if(this.state != "GAME_RUNNING")
             return;
 
+        console.log(team_id);
         this.state = "GAME_SCORED";
+        this.scores[team_id]++;
 
         console.log("SCORE!!!", this.state);
 
@@ -79,23 +83,28 @@ class Game {
             object.vel.add(Vec2D.normalize(dif).mult(power));
         }
 
-        window.setTimeout(() => {
-            for(const [idx, player] of this.players.entries()) {
-                let spawn = this.level.player_spawns[idx];
-                player.body.pos = new Vec2D(spawn);
-                player.body.vel.mult(0);
-                player.body.rot_vel = 0;
-                player.body.angle = 0;
-            }
-    
-            this.ball.pos = new Vec2D(this.level.ball_spawn);
-            this.ball.vel.mult(0);
-            this.ball.rot_vel = 0;
-            this.ball.angle = 0;
+        window.setTimeout(this.reset_level.bind(this), 3000);
+    }
 
-            this.state = "GAME_RUNNING";
-        }, 3000)
+    reset_level() {
+        for(const [idx, player] of this.players.entries()) {
+            let {pos} = this.level.player_spawns[idx];
+            player.body.pos = new Vec2D(pos);
+            player.body.vel.mult(0);
+            player.body.rot_vel = 0;
+            player.body.angle = 0;
+        }
 
+        if(this.ball.hand_ref != null) {
+            this.ball.hand_ref.release_ball();
+        }
+
+        this.ball.pos = new Vec2D(this.level.ball_spawn);
+        this.ball.vel.mult(0);
+        this.ball.rot_vel = 0;
+        this.ball.angle = 0;
+
+        this.state = "GAME_RUNNING";
     }
 
     apply_gravity() {
@@ -132,6 +141,14 @@ class Game {
     draw(ctx) {
         ctx.fillStyle = "#444";
         ctx.fillRect(0, 0, C_WDTH, C_HGHT);
+
+        ctx.fillStyle = "#666"
+        ctx.font = "bold 250px Courier"
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "center";
+        
+        ctx.fillText(this.scores[0], C_WDTH * 1/4, C_HGHT / 2);
+        ctx.fillText(this.scores[1], C_WDTH * 3/4, C_HGHT / 2);
 
         Game.PHYS_ENV.draw_objects(ctx);
 

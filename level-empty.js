@@ -1,11 +1,12 @@
 function level_empty(C_WDTH, C_HGHT) {
 
     let level = new Level();
+    level.num_teams = 2;
     level.ball_spawn = new Vec2D(C_WDTH / 2, C_HGHT * 2/3);
-    level.player_spawns[0] = new Vec2D(C_WDTH * 1/6, C_HGHT * 4/5);
-    level.player_spawns[1] = new Vec2D(C_WDTH * 5/6, C_HGHT * 4/5);
-    level.goal_spawns[0] = {pos:  new Vec2D(C_WDTH * 0.1, C_HGHT * 0.6), dir: 1};
-    level.goal_spawns[1] = {pos:  new Vec2D(C_WDTH * 0.9, C_HGHT * 0.6), dir: -1};
+    level.player_spawns[0] = {pos: new Vec2D(C_WDTH * 1/6, C_HGHT * 4/5), team_id: 0 };
+    level.player_spawns[1] = {pos: new Vec2D(C_WDTH * 5/6, C_HGHT * 4/5), team_id: 1};
+    level.goal_spawns[0] = {pos:  new Vec2D(C_WDTH * 0.1, C_HGHT * 0.6), dir: 1, team_id: 1};
+    level.goal_spawns[1] = {pos:  new Vec2D(C_WDTH * 0.9, C_HGHT * 0.6), dir: -1, team_id: 0};
     
     const MATERIAL_FLOOR = {
         density: Infinity,

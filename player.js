@@ -223,7 +223,6 @@ class PlayerHand extends PhysCircle {
         const x_strength = Math.cos(shot_angle) * strength;
         const y_strength = Math.sin(shot_angle) * strength;
         const r_strength = this.shot_charge * 25;
-        console.log(shot_angle / Math.PI, this.direction);
 
         this.ball_ref.vel.x = x_strength + 0.5 * this.player_ref.body.vel.x;
         this.ball_ref.vel.y = y_strength + 0.5 * this.player_ref.body.vel.y;
@@ -276,7 +275,6 @@ class PlayerHand extends PhysCircle {
 
         this.can_dunk = this.is_dunk_position && this.shot_charge > 0.5
         this.special_cooldown = Math.max(this.special_cooldown-1,0);
-        console.log(this.special_cooldown);
         // draw bar on player; width is playerwidth*special_cooldown/max_cooldown(probably times like 1.2)
 
         if(is_right && !is_left) {

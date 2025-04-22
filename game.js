@@ -74,15 +74,6 @@ class Game {
 
         console.log("SCORE!!!", this.state);
 
-        for(const object of Game.PHYS_ENV.objects) {
-            if(object.tag == "ball" || object.mass == 0 || object.mass == Infinity)
-                continue;
-
-            let dif = Vec2D.sub(this.ball.pos, object.pos);
-            let power = Math.max(1000 - Vec2D.mag(dif), 0);
-            object.vel.add(Vec2D.normalize(dif).mult(power));
-        }
-
         window.setTimeout(this.reset_level.bind(this), 3000);
     }
 

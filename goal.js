@@ -187,6 +187,15 @@ class GoalHitbox {
 }
 
 class Net {
+
+    static MATERIAL_NET = {
+        density: 0.7,
+        restitution: 1,
+        s_friction: .2,
+        d_friction: .2,
+        color: "#eee0",
+    }
+
     points = [];
     links = [];
 
@@ -199,14 +208,6 @@ class Net {
 
     init_net(base_pos) {
 
-        const MATERIAL_NET = {
-            density: 0.7,
-            restitution: 1,
-            s_friction: .2,
-            d_friction: .2,
-            color: "#eee0",
-        }
-
         const net_shape = [
             { width: 1, height: 0.4 },
             { width: 0.7, height: 0.2 },
@@ -215,6 +216,8 @@ class Net {
             { width: 0.5, height: 0.15 },
             { width: 0.6, height: 0.1 },
         ]
+        
+        const threshold_dist = 10;
     
         let y = base_pos.y;
 
@@ -228,23 +231,9 @@ class Net {
                 let x = base_pos.x - w/2 + col_idx * w / (num_points - 1);
 
                 let pos = new Vec2D(x, y);
-                let point = new PhysCircle(pos, 3, MATERIAL_NET);
-                
-                if(row_idx == 0)
-                    point.mass = Infinity;
-                point.moi = Infinity;
-
-                point.gravity_strength = 150;
-                
-                const is_corporeal = col_idx != 0 && col_idx != num_points - 1;
-                
-                if(is_corporeal) {
-                    point.tag = "net-inner";
-                    point.on_collision = this.corporeal_func;                
-                } else {
-                    point.tag = "net-outer";
-                }
-                
+                const is_inner = col_idx != 0 && col_idx != num_points - 1;
+                let point = this.new_point(pos, row_idx == 0, is_inner);
+        
                 Game.PHYS_ENV.add_object(point);
                 row.push(point);
             }
@@ -268,7 +257,11 @@ class Net {
                     
                     const target_dist = Vec2D.mag(Vec2D.sub(A.pos, B.pos));
                     const link = { A, B, target_dist }
-                    this.links.push(link);
+                    if(target_dist > threshold_dist && A.tag == "net-outer" && B.tag == "net-outer") {
+                        this.links.push(...this.split_link(link));
+                    } else {
+                        this.links.push(link);
+                    }
                 }
                 
                 if(x + prev_offset + 1 < this.points[y-1].length) {
@@ -276,10 +269,41 @@ class Net {
 
                     const target_dist = Vec2D.mag(Vec2D.sub(A.pos, B.pos));
                     const link = { A, B, target_dist }
-                    this.links.push(link);
+                    if(target_dist > threshold_dist && A.tag == "net-outer" && B.tag == "net-outer") {
+                        this.links.push(...this.split_link(link));
+                    } else {
+                        this.links.push(link);
+                    }
                 }
             }
         }
+    }
+
+    new_point(pos, is_fixed, is_inner) {
+        let point = new PhysCircle(pos, 3, Net.MATERIAL_NET);
+                
+        if(is_fixed)
+            point.mass = Infinity;
+        point.moi = Infinity;
+
+        point.gravity_strength = 150;
+        
+        if(is_inner) {
+            point.tag = "net-inner";
+            point.on_collision = this.corporeal_func;                
+        } else {
+            point.tag = "net-outer";
+        }
+
+        return point;
+    }
+
+    split_link({A, B, target_dist}) {
+        const halfway = Vec2D.mult(Vec2D.add(A.pos, B.pos), 0.5);
+        const new_dist = target_dist / 2;
+        const new_point = this.new_point(halfway, false, false);
+        Game.PHYS_ENV.add_object(new_point);
+        return [{A, B: new_point, target_dist: new_dist}, {A: new_point, B, target_dist: new_dist}];
     }
 
     corporeal_func(A, B) {

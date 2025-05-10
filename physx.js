@@ -72,6 +72,17 @@ function minkowski_dif_support(s1, s2, d) {
     return Vec2D.sub(support2, support1);
 }
 
+function better_modulo(num, mod) {
+    return ((num % mod) + mod) % mod;
+}
+
+function angle_diff(angle_1, angle_2) {
+    let diff = better_modulo(angle_1 - angle_2, Math.PI * 2);
+    if(diff > Math.PI)
+        diff -= 2 * Math.PI;
+    return diff;
+}
+
 function mean(arr) {
     let sum = 0;
     for(const el of arr) {
@@ -309,13 +320,16 @@ class PhysObject {
         this.on_impulse = null;
         this.tag = "";
     }
+    
+    get_rot_impulse(pos, dir) {
+        const r = new Vec2D(pos.x - this.pos.x, pos.y - this.pos.y);
+        return r.x * dir.y - r.y * dir.x
+    }
 
     // a force consists of a position vector and a direction vector
     apply_force(force) {
-        const r = new Vec2D(force.pos.x - this.pos.x, force.pos.y - this.pos.y);
-
         this.force.add(force.dir);
-        this.torque += r.x * force.dir.y - r.y * force.dir.x;
+        this.torque += this.get_rot_impulse(force.pos, force.dir);
     }
 
     step_forces(dt) {
@@ -487,6 +501,121 @@ class PhysCircle extends PhysObject {
     }
 }
 
+class DistanceConstraint {
+    constructor(A, B, distance = null) {
+        this.A = A;
+        this.B = B;
+        this.distance = distance ?? Vec2D.mag(Vec2D.sub(this.B.pos, this.A.pos));
+    }
+
+    update() {
+        
+        if(this.A.mass == Infinity && this.B.mass == Infinity)
+            return;
+
+        let vec = Vec2D.sub(this.B.pos, this.A.pos);
+        let normal = Vec2D.normalize(vec);
+        let dist = Vec2D.mag(vec);
+        
+        const proj_a = Vec2D.mult(normal, this.A.vel.dot(normal));
+        const proj_b = Vec2D.mult(normal, this.B.vel.dot(normal));
+        const impulse = Vec2D.sub(proj_b, proj_a);
+    
+        const correction_mag = dist - this.distance;
+        const correction = Vec2D.mult(normal, correction_mag);
+        
+        const total_mass = this.A.mass + this.B.mass;
+        const theta = this.B.mass == Infinity ? 1 
+            : this.A.mass == Infinity ? 0 
+            : this.B.mass / total_mass;
+
+        this.A.pos.sub(Vec2D.mult(correction, theta));
+        this.B.pos.add(Vec2D.mult(correction, 1 - theta));
+        
+        this.A.vel.sub(Vec2D.mult(impulse, theta));
+        this.B.vel.add(Vec2D.mult(impulse, 1 - theta));
+    }
+}
+
+class FixedConstraint {
+    constructor(A, B, rel_pos = null) {
+        this.A = A;
+        this.B = B;
+        this.rel_pos = rel_pos ?? Vec2D.sub(this.A.pos, this.B.pos);
+        this.a_target_angle = this.A.angle;
+        this.b_target_angle = this.B.angle;
+    }
+
+    update() {
+        
+        if(this.A.mass == Infinity && this.B.mass == Infinity)
+            return;
+
+        const total_mass = this.A.mass + this.B.mass;
+        const theta = this.B.mass == Infinity ? 1 
+            : this.A.mass == Infinity ? 0 
+            : this.B.mass / total_mass;
+        
+        let a_angle = this.A.angle - this.a_target_angle;
+        let b_angle = this.B.angle - this.b_target_angle;
+
+        let b_exp_angle = a_angle + this.b_target_angle;
+        let a_exp_angle = b_angle + this.a_target_angle;
+        
+        this.A.angle += (a_exp_angle - this.A.angle) * theta;
+        this.B.angle += (b_exp_angle - this.B.angle) * (1 - theta);
+
+        let a_exp_pos = Vec2D.rotate(Vec2D.ZERO, Vec2D.mult(this.rel_pos, -1), b_angle).add(this.B.pos);
+        let b_exp_pos = Vec2D.rotate(Vec2D.ZERO, this.rel_pos, a_angle).add(this.A.pos);
+
+        this.A.pos.sub(Vec2D.mult(Vec2D.sub(a_exp_pos, this.A.pos), theta));
+        this.B.pos.sub(Vec2D.mult(Vec2D.sub(b_exp_pos, this.B.pos), 1 - theta));
+
+        let dist = Vec2D.mag(this.rel_pos);
+        let a_dist = dist * theta;
+        let b_dist = dist * (1 - theta);
+        
+        let tan = Math.atan2(this.rel_pos.y, this.rel_pos.x);
+        let perp = Vec2D.normalize(new Vec2D(Math.cos(a_angle + tan + Math.PI/2), Math.sin(a_angle + tan + Math.PI/2)));
+        let total_moi = this.A.moi + this.B.moi == Infinity ? Infinity : this.A.moi + this.A.mass * a_dist * a_dist + this.B.moi + this.B.mass * b_dist * b_dist;
+        let center_pos = Vec2D.mult(this.B.pos, theta).add(Vec2D.mult(this.A.pos, 1 - theta));
+        let center_vel = Vec2D.mult(this.B.vel, theta).add(Vec2D.mult(this.A.vel, 1 - theta));
+        let rot_frame = theta == 0 ? this.A.rot_vel 
+            : theta == 1 ? this.B.rot_vel
+            : Vec2D.sub(this.A.vel, center_vel).dot(perp) / (dist * theta);
+
+        if(this.A.mass != Infinity && this.B.mass != Infinity) {
+            let a_frame_vel = Vec2D.mult(perp, -rot_frame * a_dist).add(center_vel);
+            let b_frame_vel = Vec2D.mult(perp, rot_frame * b_dist).add(center_vel);
+
+            let a_correction = Vec2D.sub(this.A.vel, a_frame_vel).mult(1 - theta);
+            let b_correction = Vec2D.sub(this.B.vel, b_frame_vel).mult(theta);
+
+            let [a_impulse, a_rot_impulse] = find_impulse(a_correction, center_pos, this.A.pos, total_mass, total_moi);
+            let [b_impulse, b_rot_impulse] = find_impulse(b_correction, center_pos, this.B.pos, total_mass, total_moi);
+
+            center_vel.add(a_impulse).add(b_impulse);
+            rot_frame += a_rot_impulse + b_rot_impulse;
+        }
+
+        this.A.vel = Vec2D.mult(perp, -rot_frame * a_dist).add(center_vel);
+        this.B.vel = Vec2D.mult(perp, rot_frame * b_dist).add(center_vel);
+
+        this.A.rot_vel = rot_frame;
+        this.B.rot_vel = rot_frame;
+
+        function find_impulse(impulse, impact_pos, center_pos, mass, moi) {
+            const arm = Vec2D.sub(center_pos, impact_pos);
+            const arm_cross_i = Vec2D.cross(arm, impulse);
+            
+            let vel = Vec2D.div(impulse, mass);
+            let rot_vel = arm_cross_i / moi;
+
+            return [vel, rot_vel];
+        }
+    }
+}
+
 // you can define default masks for an object tag of your choice or
 // define a mask specifically between two tags.
 // the mask with more specificity always takes priority
@@ -588,6 +717,7 @@ class PhysEnv {
 
     constructor(objects = []) {
         this.objects = [];
+        this.constraints = [];
         this.intervals = [];
         this.sweep_x = true;
         this.mask_table = new CollisionMaskTable();
@@ -622,6 +752,22 @@ class PhysEnv {
                 this.intervals.splice(i, 1);
             } else if(this.intervals[i][1] > idx) {
                 this.intervals[i][1]--;
+            }
+        }
+    }
+
+    add_constraint(constraint) {
+        this.constraints.push(constraint);
+    }
+
+    remove_constraint(constraint) {
+        let idx = -1;
+        
+        for(let i = 0; i < this.constraints.length; i++) {
+            if(constraint == this.constraints[i]) {
+                idx = i;
+                this.constraints.splice(i, 1);
+                break;
             }
         }
     }
@@ -661,6 +807,9 @@ class PhysEnv {
         this.step_forces(dt);
         for(let i = 0; i < 5; i++) {
             this.detect_collisions();
+            for(const constraint of this.constraints) {
+                constraint.update();
+            }
         }
     }
 

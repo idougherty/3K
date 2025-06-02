@@ -13,39 +13,53 @@ game.load_level(level);
 
 const MATERIAL_TEST = {
     density: 0.5,
-    restitution: .95,
-    s_friction: .6,
-    d_friction: .4,
+    restitution: 0.7,
+    s_friction: .4,
+    d_friction: .3,
     color: "#a7a",
 };
 
-let pos1 = new Vec2D(C_WDTH/2, C_HGHT * 2/5);
-let ball1 = new PhysCircle(pos1, 30, MATERIAL_TEST);
-// ball1.vel.y = 50;
-// ball1.mass = 100;
+let shape1 = [
+    new Vec2D(0, 0),
+    new Vec2D(0, 60),
+    new Vec2D(60, 60),
+    new Vec2D(60, 0),
+];
 
-let pos2 = new Vec2D(C_WDTH/2, C_HGHT * 0.9);
-let ball2 = new PhysCircle(pos2, 30, MATERIAL_TEST);
-// ball2.rot_vel = 1;
-// ball1.mass = Infinity;
-// ball2.moi = Infinity;
+let shape2 = [
+    new Vec2D(0, 0),
+    new Vec2D(0, 15),
+    new Vec2D(15, 15),
+    new Vec2D(15, 0),
+];
+
+let pos1 = new Vec2D(C_WDTH * 0.4, C_HGHT * 0.70);
+// let ball1 = new PhysCircle(pos1, 5, MATERIAL_TEST);
+let ball1 = new PhysPolygon(pos1, shape1, MATERIAL_TEST);
+ball1.tag = "ball1";
+
+let pos2 = new Vec2D(C_WDTH * 0.4, C_HGHT * 0.85);
+// let ball2 = new PhysCircle(pos2, 10, MATERIAL_TEST);
+// ball2.tag = "ball2";
+
+// let square = new PhysCircle(pos2, 30, MATERIAL_TEST);
+let square = new PhysPolygon(pos2, shape1, MATERIAL_TEST);
+square.tag = "square";
+// ball1.rot_vel = 2;
+// square.vel.x = 50;
+// ball1.vel.x = -50;
+
 // ball1.gravity_strength = 0;
-// ball2.gravity_strength = 0;
+// square.gravity_strength = 0;
 
-let pos3 = new Vec2D(C_WDTH/2, C_HGHT/2);
-let ball3 = new PhysCircle(pos1, 15);
-ball3.mass = Infinity;
-ball3.tag = "swing-joint";
-Game.PHYS_ENV.mask_table.add_default_mask(ball3.tag);
+let constraint = new FixedConstraint(ball1, square);
+// let constraint = new DistanceConstraint(ball1, square);
 
-let constraint1 = new FixedConstraint(ball1, ball2);
-let constraint2 = new DistanceConstraint(ball1, ball3);
-
+Game.PHYS_ENV.mask_table.set_mask(ball1.tag, square.tag, true);
 Game.PHYS_ENV.add_object(ball1);
-Game.PHYS_ENV.add_object(ball2);
-Game.PHYS_ENV.add_object(ball3);
-Game.PHYS_ENV.add_constraint(constraint1);
-Game.PHYS_ENV.add_constraint(constraint2);
+// Game.PHYS_ENV.add_object(ball2);
+Game.PHYS_ENV.add_object(square);
+Game.PHYS_ENV.add_constraint(constraint);
 
 game.init();
 

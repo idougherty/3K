@@ -580,13 +580,18 @@ class FixedConstraint {
         let total_moi = this.A.moi + this.B.moi == Infinity ? Infinity : this.A.moi + this.A.mass * a_dist * a_dist + this.B.moi + this.B.mass * b_dist * b_dist;
         let center_pos = Vec2D.mult(this.B.pos, theta).add(Vec2D.mult(this.A.pos, 1 - theta));
         let center_vel = Vec2D.mult(this.B.vel, theta).add(Vec2D.mult(this.A.vel, 1 - theta));
-        let rot_frame = theta == 0 ? this.A.rot_vel 
+        let vel_rot_frame = theta == 0 ? this.A.rot_vel 
             : theta == 1 ? this.B.rot_vel
             : Vec2D.sub(this.A.vel, center_vel).dot(perp) / (dist * theta);
+        let rot_vel_rot_frame = theta * this.B.rot_vel + (1 - theta) * this.A.rot_vel;
+        // TODO: why do we have to halve these
+        let rot_frame = (vel_rot_frame + rot_vel_rot_frame)/2;
+        // let rot_frame = vel_rot_frame;
 
-        if(this.A.mass != Infinity && this.B.mass != Infinity) {
+        if(this.A.mass + this.B.mass != Infinity) {
             let a_frame_vel = Vec2D.mult(perp, -rot_frame * a_dist).add(center_vel);
             let b_frame_vel = Vec2D.mult(perp, rot_frame * b_dist).add(center_vel);
+            // console.log(a_frame_vel, b_frame_vel)
 
             let a_correction = Vec2D.sub(this.A.vel, a_frame_vel).mult(1 - theta);
             let b_correction = Vec2D.sub(this.B.vel, b_frame_vel).mult(theta);
@@ -597,6 +602,10 @@ class FixedConstraint {
             center_vel.add(a_impulse).add(b_impulse);
             rot_frame += a_rot_impulse + b_rot_impulse;
         }
+
+        console.log(rot_frame)
+        // console.log(a_exp_pos, b_exp_angle - this.B.angle)
+        // console.log(this.B.rot_vel - rot_frame, Vec2D.mult(perp, rot_frame * b_dist).add(center_vel).sub(this.B.vel))
 
         this.A.vel = Vec2D.mult(perp, -rot_frame * a_dist).add(center_vel);
         this.B.vel = Vec2D.mult(perp, rot_frame * b_dist).add(center_vel);

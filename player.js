@@ -42,23 +42,42 @@ class Player {
         this.controls = controls;
         this.id = Player.ID++;
         
-        const [body, hand, ground] = this.init_components(pos, color);
-
-        this.body = body;
-        this.hand = hand;
-        this.ground_hitbox = ground;
-
-        Game.PHYS_ENV.add_object(this.body);
-        Game.PHYS_ENV.add_object(this.hand);
-        Game.PHYS_ENV.add_object(this.ground_hitbox);
+        this.init_components(pos, color);
     }
     
     init_components(pos, color) {
-        let body = new PlayerBody(this, pos, color);
-        let hand = new PlayerHand(this, pos, color);
-        let ground_hitbox = new PlayerGroundHitbox(body, pos);
+        
+        const MATERIAL_SHOULDER = {
+            density: 1,
+            restitution: 0.1,
+            s_friction: 0.1,
+            d_friction: 0.1,
+            color,
+        };
 
-        return [body, hand, ground_hitbox];
+        let shoulder_pos = new Vec2D(pos.x, pos.y - (PlayerBody.HEIGHT / 2 - PlayerBody.WIDTH / 2))
+        let shoulder = new PhysCircle(shoulder_pos, 5, MATERIAL_SHOULDER);
+        shoulder.tag = "player-shoulder";
+        this.shoulder = shoulder;
+        this.shoulder.gravity_strength = 0;
+        
+        this.body = new PlayerBody(this, pos, color);
+        this.hand = new PlayerHand(this, pos, color);
+        this.ground_hitbox = new PlayerGroundHitbox(this.body, pos);
+        
+        let shoulder_body = new FixedConstraint(this.shoulder, this.body);
+        let shoulder_hand = new FixedConstraint(this.shoulder, this.hand);
+
+        Game.PHYS_ENV.mask_table.add_default_mask(this.shoulder.tag);
+        Game.PHYS_ENV.mask_table.add_default_mask(this.hand.tag);
+
+        Game.PHYS_ENV.add_object(this.shoulder);
+        Game.PHYS_ENV.add_object(this.body);
+        Game.PHYS_ENV.add_object(this.hand);
+        Game.PHYS_ENV.add_object(this.ground_hitbox);
+
+        // Game.PHYS_ENV.add_constraint(shoulder_body);
+        // Game.PHYS_ENV.add_constraint(shoulder_hand);
     }
 
     step() {
@@ -175,15 +194,15 @@ class PlayerHand extends PhysCircle {
 
     constructor(player_ref, pos, color) {
 
-        const MATERIAL_HITBOX = {
-            density: 0,
-            restitution: 0,
-            s_friction: 0,
-            d_friction: 0,
+        const MATERIAL_HAND = {
+            density: 10,
+            restitution: 0.5,
+            s_friction: 0.3,
+            d_friction: 0.3,
             color,
         };
 
-        super(pos, PlayerHand.SIZE, MATERIAL_HITBOX);
+        super(pos, PlayerHand.SIZE, MATERIAL_HAND);
 
         this.tag = `player-hand-${player_ref.id}`;
         this.player_ref = player_ref;
@@ -338,14 +357,14 @@ class PlayerHand extends PhysCircle {
         this.arm_angle += 0.15 * (this.target_angle - this.arm_angle);
 
         let {pos, angle} = this.player_ref.body;
-        const height = pos.y - PlayerBody.HEIGHT / 2 + PlayerBody.WIDTH / 2;
+        const height = pos.y - (PlayerBody.HEIGHT / 2 - PlayerBody.WIDTH / 2);
         let shoulder = Vec2D.rotate(pos, new Vec2D(pos.x, height), angle).add(pos);
 
         if(this.direction == -1)
             angle += Math.PI;
 
-        this.pos.x = shoulder.x + Math.cos(this.direction * this.arm_angle + angle) * PlayerHand.ARM_LENGTH;
-        this.pos.y = shoulder.y + Math.sin(this.direction * this.arm_angle + angle) * PlayerHand.ARM_LENGTH;
+        // this.pos.x = shoulder.x + Math.cos(this.direction * this.arm_angle + angle) * PlayerHand.ARM_LENGTH;
+        // this.pos.y = shoulder.y + Math.sin(this.direction * this.arm_angle + angle) * PlayerHand.ARM_LENGTH;
 
         this.was_action = is_action;
         this.is_dunk_position = false;

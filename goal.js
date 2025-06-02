@@ -28,7 +28,6 @@ class Goal {
 
         this.dir = dir;
         this.team_id = team_id;
-        console.log(team_id);
     
         this.backboard = new PhysPolygon(pos, board_shape, MATERIAL_BBOARD);
         Game.PHYS_ENV.add_object(this.backboard);

@@ -40,11 +40,11 @@ ball1.tag = "ball1";
 
 let pos2 = new Vec2D(C_WDTH * 0.4, C_HGHT * 0.85);
 // let ball2 = new PhysCircle(pos2, 30, MATERIAL_TEST);
-let ball2 = new PhysPolygon(pos2, shape2, MATERIAL_TEST);
+let ball2 = new PhysPolygon(pos2, shape1, MATERIAL_TEST);
 ball2.tag = "ball2";
 
 let pos3 = new Vec2D(C_WDTH * 0.55, C_HGHT * 0.70);
-// let ball2 = new PhysCircle(pos2, 30, MATERIAL_TEST);
+// let ball3 = new PhysCircle(pos3, 10, MATERIAL_TEST);
 let ball3 = new PhysPolygon(pos3, shape2, MATERIAL_TEST);
 ball3.tag = "ball3";
 
@@ -58,10 +58,9 @@ ball3.tag = "ball3";
 // ball3.gravity_strength = 0;
 
 let constraint1 = new FixedConstraint(ball1, ball2);
-let constraint2 = new FixedConstraint(ball2, ball3);
-// let constraint = new DistanceConstraint(ball1, ball2);
+let constraint2 = new FixedConstraint(ball1, ball3);
+// ball2.angle = Math.PI/2;
 
-// Game.PHYS_ENV.mask_table.set_mask(ball1.tag, ball2.tag, true);
 Game.PHYS_ENV.add_object(ball1);
 Game.PHYS_ENV.add_object(ball2);
 Game.PHYS_ENV.add_object(ball3);

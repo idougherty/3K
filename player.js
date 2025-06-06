@@ -75,8 +75,8 @@ class Player {
         Game.PHYS_ENV.add_object(this.hand);
         Game.PHYS_ENV.add_object(this.ground_hitbox);
 
-        Game.PHYS_ENV.add_constraint(shoulder_body);
-        Game.PHYS_ENV.add_constraint(shoulder_hand);
+        // Game.PHYS_ENV.add_constraint(shoulder_body);
+        // Game.PHYS_ENV.add_constraint(shoulder_hand);
     }
 
     step() {

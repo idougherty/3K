@@ -537,7 +537,7 @@ class DistanceConstraint {
     }
 }
 
-
+// TODO: allow composition of fixed constraints
 class FixedConstraint {
     constructor(A, B, distance = null, a_target_angle = null, b_target_angle = null) {
         this.A = A;
@@ -560,29 +560,26 @@ class FixedConstraint {
             : this.B.mass / total_mass;
         
         this.distance_constraint.update();
-
+        
         const rel_angle = Math.atan2(this.B.pos.y - this.A.pos.y, this.B.pos.x - this.A.pos.x);
-        const a_rot_diff = rel_angle + this.a_target_angle - this.A.angle;
-        const b_rot_diff = rel_angle + this.b_target_angle - this.B.angle;
+        const a_rot_diff = angle_diff(rel_angle + this.a_target_angle, this.A.angle);
+        const b_rot_diff = angle_diff(rel_angle + this.b_target_angle, this.B.angle);
 
-        this.A.angle = rel_angle + this.a_target_angle;
-        this.B.angle = rel_angle + this.b_target_angle;
-
-        // TODO: use these as torques
-        console.log(a_rot_diff, b_rot_diff)
-
+        this.A.angle += a_rot_diff;
+        this.B.angle += b_rot_diff;
+        
         let perp = Vec2D.normalize(new Vec2D(Math.cos(rel_angle + Math.PI/2), Math.sin(rel_angle + Math.PI/2)));
         let rot_frame = Vec2D.sub(this.A.vel, this.B.vel).dot(perp) / this.distance;
-
-        let a_torque = (this.A.rot_vel - rot_frame) * this.A.moi;
-        let b_torque = (this.B.rot_vel - rot_frame) * this.B.moi;
+        
+        let a_torque = (this.A.rot_vel - rot_frame - a_rot_diff) * this.A.moi;
+        let b_torque = (this.B.rot_vel - rot_frame - b_rot_diff) * this.B.moi;
         let net_torque = a_torque + b_torque;
-
+        
         let a_dist = this.distance * theta;
         let b_dist = this.distance * (1 - theta);
-        let total_moi = this.A.moi + this.A.mass * a_dist * a_dist + this.B.moi + this.B.mass * b_dist * b_dist;
+        const total_moi = this.A.moi + this.A.mass * a_dist * a_dist + this.B.moi + this.B.mass * b_dist * b_dist;
         let center_vel = Vec2D.mult(this.B.vel, theta).add(Vec2D.mult(this.A.vel, 1 - theta));
-
+        
         rot_frame += net_torque / total_moi;
         this.A.rot_vel = this.B.rot_vel = rot_frame;
         

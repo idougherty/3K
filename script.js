@@ -34,32 +34,41 @@ let shape2 = [
 ];
 
 let pos1 = new Vec2D(C_WDTH * 0.4, C_HGHT * 0.70);
-// let ball1 = new PhysCircle(pos1, 5, MATERIAL_TEST);
-let ball1 = new PhysPolygon(pos1, shape1, MATERIAL_TEST);
+// let ball1 = new PhysCircle(pos1, 10, MATERIAL_TEST);
+let ball1 = new PhysPolygon(pos1, shape2, MATERIAL_TEST);
 ball1.tag = "ball1";
 
 let pos2 = new Vec2D(C_WDTH * 0.4, C_HGHT * 0.85);
-// let ball2 = new PhysCircle(pos2, 10, MATERIAL_TEST);
-// ball2.tag = "ball2";
+// let ball2 = new PhysCircle(pos2, 30, MATERIAL_TEST);
+let ball2 = new PhysPolygon(pos2, shape2, MATERIAL_TEST);
+ball2.tag = "ball2";
 
-// let square = new PhysCircle(pos2, 30, MATERIAL_TEST);
-let square = new PhysPolygon(pos2, shape1, MATERIAL_TEST);
-square.tag = "square";
-// ball1.rot_vel = 2;
-// square.vel.x = 50;
-// ball1.vel.x = -50;
+let pos3 = new Vec2D(C_WDTH * 0.55, C_HGHT * 0.70);
+// let ball2 = new PhysCircle(pos2, 30, MATERIAL_TEST);
+let ball3 = new PhysPolygon(pos3, shape2, MATERIAL_TEST);
+ball3.tag = "ball3";
+
+// ball1.rot_vel = Math.PI;
+// ball2.rot_vel = 2;
+// ball2.vel.x = -50;
+// ball1.vel.x = 50;
 
 // ball1.gravity_strength = 0;
-// square.gravity_strength = 0;
+// ball2.gravity_strength = 0;
+// ball3.gravity_strength = 0;
 
-let constraint = new FixedConstraint(ball1, square);
-// let constraint = new DistanceConstraint(ball1, square);
+let constraint1 = new FixedConstraint(ball1, ball2);
+let constraint2 = new FixedConstraint(ball2, ball3);
+// let constraint = new DistanceConstraint(ball1, ball2);
 
-Game.PHYS_ENV.mask_table.set_mask(ball1.tag, square.tag, true);
+// Game.PHYS_ENV.mask_table.set_mask(ball1.tag, ball2.tag, true);
 Game.PHYS_ENV.add_object(ball1);
-// Game.PHYS_ENV.add_object(ball2);
-Game.PHYS_ENV.add_object(square);
-Game.PHYS_ENV.add_constraint(constraint);
+Game.PHYS_ENV.add_object(ball2);
+Game.PHYS_ENV.add_object(ball3);
+Game.PHYS_ENV.add_constraint(constraint1);
+Game.PHYS_ENV.add_constraint(constraint2);
 
 game.init();
+
+console.log("STARTING!!!!")
 

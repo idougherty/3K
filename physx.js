@@ -537,13 +537,16 @@ class DistanceConstraint {
     }
 }
 
+
 class FixedConstraint {
-    constructor(A, B, rel_pos = null) {
+    constructor(A, B, distance = null, a_target_angle = null, b_target_angle = null) {
         this.A = A;
         this.B = B;
-        this.rel_pos = rel_pos ?? Vec2D.sub(this.A.pos, this.B.pos);
-        this.a_target_angle = this.A.angle;
-        this.b_target_angle = this.B.angle;
+        this.distance = distance ?? Vec2D.mag(Vec2D.sub(this.A.pos, this.B.pos));
+        const rel_angle = Math.atan2(this.B.pos.y - this.A.pos.y, this.B.pos.x - this.A.pos.x);
+        this.a_target_angle = a_target_angle ?? this.A.angle - rel_angle;
+        this.b_target_angle = b_target_angle ?? this.B.angle - rel_angle;
+        this.distance_constraint = new DistanceConstraint(A, B, distance);
     }
 
     update() {
@@ -556,72 +559,35 @@ class FixedConstraint {
             : this.A.mass == Infinity ? 0 
             : this.B.mass / total_mass;
         
-        let a_angle = this.A.angle - this.a_target_angle;
-        let b_angle = this.B.angle - this.b_target_angle;
+        this.distance_constraint.update();
 
-        let b_exp_angle = a_angle + this.b_target_angle;
-        let a_exp_angle = b_angle + this.a_target_angle;
-        
-        this.A.angle += (a_exp_angle - this.A.angle) * theta;
-        this.B.angle += (b_exp_angle - this.B.angle) * (1 - theta);
+        const rel_angle = Math.atan2(this.B.pos.y - this.A.pos.y, this.B.pos.x - this.A.pos.x);
+        const a_rot_diff = rel_angle + this.a_target_angle - this.A.angle;
+        const b_rot_diff = rel_angle + this.b_target_angle - this.B.angle;
 
-        let a_exp_pos = Vec2D.rotate(Vec2D.ZERO, Vec2D.mult(this.rel_pos, -1), b_angle).add(this.B.pos);
-        let b_exp_pos = Vec2D.rotate(Vec2D.ZERO, this.rel_pos, a_angle).add(this.A.pos);
+        this.A.angle = rel_angle + this.a_target_angle;
+        this.B.angle = rel_angle + this.b_target_angle;
 
-        this.A.pos.sub(Vec2D.mult(Vec2D.sub(a_exp_pos, this.A.pos), theta));
-        this.B.pos.sub(Vec2D.mult(Vec2D.sub(b_exp_pos, this.B.pos), 1 - theta));
+        // TODO: use these as torques
+        console.log(a_rot_diff, b_rot_diff)
 
-        let dist = Vec2D.mag(this.rel_pos);
-        let a_dist = dist * theta;
-        let b_dist = dist * (1 - theta);
-        
-        let tan = Math.atan2(this.rel_pos.y, this.rel_pos.x);
-        let perp = Vec2D.normalize(new Vec2D(Math.cos(a_angle + tan + Math.PI/2), Math.sin(a_angle + tan + Math.PI/2)));
-        let total_moi = this.A.moi + this.B.moi == Infinity ? Infinity : this.A.moi + this.A.mass * a_dist * a_dist + this.B.moi + this.B.mass * b_dist * b_dist;
-        let center_pos = Vec2D.mult(this.B.pos, theta).add(Vec2D.mult(this.A.pos, 1 - theta));
+        let perp = Vec2D.normalize(new Vec2D(Math.cos(rel_angle + Math.PI/2), Math.sin(rel_angle + Math.PI/2)));
+        let rot_frame = Vec2D.sub(this.A.vel, this.B.vel).dot(perp) / this.distance;
+
+        let a_torque = (this.A.rot_vel - rot_frame) * this.A.moi;
+        let b_torque = (this.B.rot_vel - rot_frame) * this.B.moi;
+        let net_torque = a_torque + b_torque;
+
+        let a_dist = this.distance * theta;
+        let b_dist = this.distance * (1 - theta);
+        let total_moi = this.A.moi + this.A.mass * a_dist * a_dist + this.B.moi + this.B.mass * b_dist * b_dist;
         let center_vel = Vec2D.mult(this.B.vel, theta).add(Vec2D.mult(this.A.vel, 1 - theta));
-        let vel_rot_frame = theta == 0 ? this.A.rot_vel 
-            : theta == 1 ? this.B.rot_vel
-            : Vec2D.sub(this.A.vel, center_vel).dot(perp) / (dist * theta);
-        let rot_vel_rot_frame = theta * this.B.rot_vel + (1 - theta) * this.A.rot_vel;
-        // TODO: why do we have to halve these
-        let rot_frame = (vel_rot_frame + rot_vel_rot_frame)/2;
-        // let rot_frame = vel_rot_frame;
 
-        if(this.A.mass + this.B.mass != Infinity) {
-            let a_frame_vel = Vec2D.mult(perp, -rot_frame * a_dist).add(center_vel);
-            let b_frame_vel = Vec2D.mult(perp, rot_frame * b_dist).add(center_vel);
-            // console.log(a_frame_vel, b_frame_vel)
-
-            let a_correction = Vec2D.sub(this.A.vel, a_frame_vel).mult(1 - theta);
-            let b_correction = Vec2D.sub(this.B.vel, b_frame_vel).mult(theta);
-
-            let [a_impulse, a_rot_impulse] = find_impulse(a_correction, center_pos, this.A.pos, total_mass, total_moi);
-            let [b_impulse, b_rot_impulse] = find_impulse(b_correction, center_pos, this.B.pos, total_mass, total_moi);
-
-            center_vel.add(a_impulse).add(b_impulse);
-            rot_frame += a_rot_impulse + b_rot_impulse;
-        }
-
-        console.log(rot_frame)
-        // console.log(a_exp_pos, b_exp_angle - this.B.angle)
-        // console.log(this.B.rot_vel - rot_frame, Vec2D.mult(perp, rot_frame * b_dist).add(center_vel).sub(this.B.vel))
-
+        rot_frame += net_torque / total_moi;
+        this.A.rot_vel = this.B.rot_vel = rot_frame;
+        
         this.A.vel = Vec2D.mult(perp, -rot_frame * a_dist).add(center_vel);
         this.B.vel = Vec2D.mult(perp, rot_frame * b_dist).add(center_vel);
-
-        this.A.rot_vel = rot_frame;
-        this.B.rot_vel = rot_frame;
-
-        function find_impulse(impulse, impact_pos, center_pos, mass, moi) {
-            const arm = Vec2D.sub(center_pos, impact_pos);
-            const arm_cross_i = Vec2D.cross(arm, impulse);
-            
-            let vel = Vec2D.div(impulse, mass);
-            let rot_vel = arm_cross_i / moi;
-
-            return [vel, rot_vel];
-        }
     }
 }
 

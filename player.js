@@ -48,7 +48,7 @@ class Player {
     init_components(pos, color) {
         
         const MATERIAL_SHOULDER = {
-            density: 1,
+            density: 0.1,
             restitution: 0.1,
             s_friction: 0.1,
             d_friction: 0.1,
@@ -59,7 +59,6 @@ class Player {
         let shoulder = new PhysCircle(shoulder_pos, 5, MATERIAL_SHOULDER);
         shoulder.tag = "player-shoulder";
         this.shoulder = shoulder;
-        this.shoulder.gravity_strength = 0;
         
         this.body = new PlayerBody(this, pos, color);
         this.hand = new PlayerHand(this, pos, color);
@@ -76,8 +75,8 @@ class Player {
         Game.PHYS_ENV.add_object(this.hand);
         Game.PHYS_ENV.add_object(this.ground_hitbox);
 
-        // Game.PHYS_ENV.add_constraint(shoulder_body);
-        // Game.PHYS_ENV.add_constraint(shoulder_hand);
+        Game.PHYS_ENV.add_constraint(shoulder_body);
+        Game.PHYS_ENV.add_constraint(shoulder_hand);
     }
 
     step() {
@@ -195,7 +194,7 @@ class PlayerHand extends PhysCircle {
     constructor(player_ref, pos, color) {
 
         const MATERIAL_HAND = {
-            density: 10,
+            density: 0.01,
             restitution: 0.5,
             s_friction: 0.3,
             d_friction: 0.3,

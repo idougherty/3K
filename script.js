@@ -58,14 +58,15 @@ ball3.tag = "ball3";
 // ball3.gravity_strength = 0;
 
 let constraint1 = new FixedConstraint(ball1, ball2);
-let constraint2 = new FixedConstraint(ball1, ball3);
-// ball2.angle = Math.PI/2;
+let constraint2 = new FixedConstraint(constraint1.composite_body, ball3);
+
+// constraint1.composite_body.rot_vel = 1;
 
 Game.PHYS_ENV.add_object(ball1);
 Game.PHYS_ENV.add_object(ball2);
 Game.PHYS_ENV.add_object(ball3);
 Game.PHYS_ENV.add_constraint(constraint1);
-Game.PHYS_ENV.add_constraint(constraint2);
+// Game.PHYS_ENV.add_constraint(constraint2);
 
 game.init();
 

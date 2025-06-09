@@ -520,7 +520,7 @@ class DistanceConstraint {
         const proj_a = Vec2D.mult(normal, this.A.vel.dot(normal));
         const proj_b = Vec2D.mult(normal, this.B.vel.dot(normal));
         const impulse = Vec2D.sub(proj_b, proj_a);
-    
+        
         const correction_mag = dist - this.distance;
         const correction = Vec2D.mult(normal, correction_mag);
         
@@ -529,15 +529,21 @@ class DistanceConstraint {
             : this.A.mass == Infinity ? 0 
             : this.B.mass / total_mass;
 
+        this.A.constraint_ref?.update_composite_body(); 
+        this.B.constraint_ref?.update_composite_body(); 
+        
         this.A.pos.sub(Vec2D.mult(correction, theta));
         this.B.pos.add(Vec2D.mult(correction, 1 - theta));
         
         this.A.vel.sub(Vec2D.mult(impulse, theta));
         this.B.vel.add(Vec2D.mult(impulse, 1 - theta));
+
+        this.A.constraint_ref?.apply_composite_body(); 
+        this.B.constraint_ref?.apply_composite_body(); 
     }
 }
 
-// TODO: allow composition of fixed constraints
+// TODO: fix sliding
 class FixedConstraint {
     constructor(A, B, distance = null, a_target_angle = null, b_target_angle = null) {
         this.A = A;
@@ -555,36 +561,34 @@ class FixedConstraint {
     update() {
         if(this.A.mass == Infinity && this.B.mass == Infinity)
             return;
-
+        
         this.distance_constraint.update();
         this.update_composite_body();
-        const {mass, vel, pos, moi, rot_vel, angle} = this.composite_body;
-        const {perp} = this.utils;
-        const theta = this.B.mass == Infinity ? 1 
-            : this.A.mass == Infinity ? 0 
-            : this.B.mass / mass;
+        
+        const {vel, moi, rot_vel, angle} = this.composite_body;
+        const {perp, a_dist, b_dist} = this.utils;
         
         const a_rot_diff = angle_diff(angle + this.a_target_angle, this.A.angle);
         const b_rot_diff = angle_diff(angle + this.b_target_angle, this.B.angle);
-
-        this.A.angle += a_rot_diff;
-        this.B.angle += b_rot_diff;
-        // TODO: I think i also need to correct player position here...
-        // this.A.pos = Vec2D.mult(dir, -a_dist).add(pos);
-        // this.B.pos = Vec2D.mult(dir, b_dist).add(pos);
         
         let a_torque = (this.A.rot_vel - rot_vel - a_rot_diff) * this.A.moi;
         let b_torque = (this.B.rot_vel - rot_vel - b_rot_diff) * this.B.moi;
         let net_torque = a_torque + b_torque;
-        
-        let a_dist = this.distance * theta;
-        let b_dist = this.distance * (1 - theta);
-        
         const rot_impulse = rot_vel + net_torque / moi;
+        
+        this.A.constraint_ref?.update_composite_body(); 
+        this.B.constraint_ref?.update_composite_body(); 
+
+        this.A.angle += a_rot_diff;
+        this.B.angle += b_rot_diff;
+
         this.A.rot_vel = this.B.rot_vel = rot_vel;
         
         this.A.vel = Vec2D.mult(perp, -rot_impulse * a_dist).add(vel);
         this.B.vel = Vec2D.mult(perp, rot_impulse * b_dist).add(vel);
+
+        this.A.constraint_ref?.apply_composite_body(); 
+        this.B.constraint_ref?.apply_composite_body(); 
     }
 
     // For composing fixed constraints together, you need:
@@ -596,7 +600,7 @@ class FixedConstraint {
         moi: 0,
         rot_vel: 0,
         angle: 0,
-        tag: "composite-body"
+        constraint_ref: this,
     }
 
     utils = {
@@ -611,7 +615,6 @@ class FixedConstraint {
     }
 
     calc_utils() {
-        
         const total_mass = this.A.mass + this.B.mass;
         const theta = this.B.mass == Infinity ? 1 
         : this.A.mass == Infinity ? 0 
@@ -646,7 +649,10 @@ class FixedConstraint {
     }
 
     apply_composite_body() {
-        const {mass, vel, pos, moi, rot_vel, angle} = this.composite_body;
+        const {perp, a_dist, b_dist} = this.utils;
+        const {vel, pos, rot_vel, angle} = this.composite_body;
+
+        const dir = Vec2D.normalize(new Vec2D(Math.cos(angle), Math.sin(angle)));
 
         this.A.pos = Vec2D.mult(dir, -a_dist).add(pos);
         this.B.pos = Vec2D.mult(dir, b_dist).add(pos);
@@ -857,7 +863,7 @@ class PhysEnv {
             }
         }
     }
-
+    
     step_forces(dt) {
         for(const obj of this.objects) {
             obj.step_forces(dt);

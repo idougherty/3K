@@ -64,8 +64,8 @@ class Player {
         this.hand = new PlayerHand(this, pos, color);
         this.ground_hitbox = new PlayerGroundHitbox(this.body, pos);
         
-        let shoulder_body = new FixedConstraint(this.shoulder, this.body);
-        let shoulder_hand = new FixedConstraint(this.shoulder, this.hand);
+        // let shoulder_body = new FixedConstraint(this.shoulder, this.body);
+        // let shoulder_hand = new FixedConstraint(this.shoulder, this.hand);
 
         Game.PHYS_ENV.mask_table.add_default_mask(this.shoulder.tag);
         Game.PHYS_ENV.mask_table.add_default_mask(this.hand.tag);

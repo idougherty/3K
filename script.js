@@ -33,32 +33,40 @@ let shape2 = [
     new Vec2D(15, 0),
 ];
 
-let pos1 = new Vec2D(C_WDTH * 0.4, C_HGHT * 0.65);
-// let ball1 = new PhysCircle(pos1, 10, MATERIAL_TEST);
-let ball1 = new PhysPolygon(pos1, shape2, MATERIAL_TEST);
+let anchor_pos = new Vec2D(C_WDTH * 0.3, C_HGHT * 0.7);
+let anchor = new PhysCircle(anchor_pos, 5, MATERIAL_WALL);
+anchor.tag = "anchor";
+
+let pos1 = new Vec2D(C_WDTH * 0.3, C_HGHT * 0.80);
+let ball1 = new PhysCircle(pos1, 15, MATERIAL_TEST);
+// let ball1 = new PhysPolygon(pos1, shape2, MATERIAL_TEST);
 ball1.tag = "ball1";
 
 let pos2 = new Vec2D(C_WDTH * 0.4, C_HGHT * 0.80);
-// let ball2 = new PhysCircle(pos2, 30, MATERIAL_TEST);
-let ball2 = new PhysPolygon(pos2, shape1, MATERIAL_TEST);
+let ball2 = new PhysCircle(pos2, 15, MATERIAL_TEST);
+// let ball2 = new PhysPolygon(pos2, shape1, MATERIAL_TEST);
 ball2.tag = "ball2";
 
-let pos3 = new Vec2D(C_WDTH * 0.50, C_HGHT * 0.65);
-// let ball3 = new PhysCircle(pos3, 10, MATERIAL_TEST);
-let ball3 = new PhysPolygon(pos3, shape2, MATERIAL_TEST);
-ball3.tag = "ball3";
+// let pos3 = new Vec2D(C_WDTH * 0.50, C_HGHT * 0.65);
+// let ball3 = new PhysCircle(pos3, 30, MATERIAL_TEST);
+// let ball3 = new PhysPolygon(pos3, shape2, MATERIAL_TEST);
+// ball3.tag = "ball3";
 
 // ball1.rot_vel = Math.PI;
 // ball2.rot_vel = 2;
 // ball2.vel.x = -50;
-// ball1.vel.x = 50;
+ball1.vel.x = 50;
 
+ball1.rot_vel = 2;
 // ball1.gravity_strength = 0;
 // ball2.gravity_strength = 0;
 // ball3.gravity_strength = 0;
 
-let constraint1 = new FixedConstraint(ball1, ball2);
-let constraint2 = new FixedConstraint(constraint1.composite_body, ball3);
+let constraint1 = new DistanceConstraintNonCOM(ball1, ball2, 15, new Vec2D(ball2.radius, 0), new Vec2D(ball1.radius, 0));
+let constraint2 = new DistanceConstraintNonCOM(anchor, ball1, 15, new Vec2D(0, anchor.radius), new Vec2D(-ball1.radius, 0));
+// let constraint3 = new FixedConstraint(anchor, ball1);
+// let constraint1 = new DistanceConstraint(ball1, ball2, 40, new Vec2D(0, 0), new Vec2D(0, 0));
+// let constraint2 = new FixedConstraint(constraint1.composite_body, ball3);
 
 // constraint1.update_composite_body();
 // constraint1.composite_body.angle = Math.PI;
@@ -69,11 +77,16 @@ let constraint2 = new FixedConstraint(constraint1.composite_body, ball3);
 // ball2.rot_vel = Math.PI;
 // ball3.rot_vel = Math.PI;
 
+Game.PHYS_ENV.mask_table.set_mask(anchor.tag, ball1.tag);
+Game.PHYS_ENV.mask_table.set_mask(ball1.tag, ball2.tag);
+
+Game.PHYS_ENV.add_object(anchor);
 Game.PHYS_ENV.add_object(ball1);
 Game.PHYS_ENV.add_object(ball2);
-Game.PHYS_ENV.add_object(ball3);
+// Game.PHYS_ENV.add_object(ball3);
 Game.PHYS_ENV.add_constraint(constraint1);
 Game.PHYS_ENV.add_constraint(constraint2);
+// Game.PHYS_ENV.add_constraint(constraint3);
 
 game.init();
 

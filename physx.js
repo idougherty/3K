@@ -168,6 +168,7 @@ class Vec2D {
     }
 
     static mag(vec) {
+        if(vec.x == 0 && vec.y == 0) return 0;
         return Math.sqrt(vec.x * vec.x + vec.y * vec.y);
     }
 
@@ -517,10 +518,6 @@ class DistanceConstraint {
         let normal = Vec2D.normalize(vec);
         let dist = Vec2D.mag(vec);
         
-        const proj_a = Vec2D.mult(normal, this.A.vel.dot(normal));
-        const proj_b = Vec2D.mult(normal, this.B.vel.dot(normal));
-        const impulse = Vec2D.sub(proj_b, proj_a);
-        
         const correction_mag = dist - this.distance;
         const correction = Vec2D.mult(normal, correction_mag);
         
@@ -535,15 +532,102 @@ class DistanceConstraint {
         this.A.pos.sub(Vec2D.mult(correction, theta));
         this.B.pos.add(Vec2D.mult(correction, 1 - theta));
         
-        this.A.vel.sub(Vec2D.mult(impulse, theta));
-        this.B.vel.add(Vec2D.mult(impulse, 1 - theta));
-
         this.A.constraint_ref?.apply_composite_body(); 
         this.B.constraint_ref?.apply_composite_body(); 
     }
 }
 
-// TODO: fix sliding
+class DistanceConstraintNonCOM {
+    constructor(A, B, distance = null, pin_a = Vec2D.ZERO, pin_b = Vec2D.ZERO) {
+        this.A = A;
+        this.B = B;
+        this.distance = distance ?? Vec2D.mag(Vec2D.sub(this.B.pos, this.A.pos));
+        this.pin_a = pin_a;
+        this.pin_b = pin_b;
+    }
+
+    update() {
+
+        if(this.A.mass == Infinity && this.B.mass == Infinity)
+            return;
+
+        let pin_a = Vec2D.rotate(Vec2D.ZERO, this.pin_a, this.A.angle);
+        let pin_b = Vec2D.rotate(Vec2D.ZERO, this.pin_b, this.B.angle);
+
+        let pin_a_pos = Vec2D.add(this.A.pos, pin_a);
+        let pin_b_pos = Vec2D.add(this.B.pos, pin_b);
+
+        let pin_a_perp = Vec2D.normalize(new Vec2D(-pin_a.y, pin_a.x));
+        let pin_b_perp = Vec2D.normalize(new Vec2D(-pin_b.y, pin_b.x));
+
+        let pin_a_dist = Vec2D.mag(pin_a);
+        let pin_b_dist = Vec2D.mag(pin_b);
+
+        let pin_a_vel = Vec2D.add(this.A.vel, Vec2D.mult(pin_a_perp, this.A.rot_vel * pin_a_dist));
+        let pin_b_vel = Vec2D.add(this.B.vel, Vec2D.mult(pin_b_perp, this.B.rot_vel * pin_b_dist));
+
+        let vec = Vec2D.sub(pin_b_pos, pin_a_pos);
+        let normal = Vec2D.normalize(vec);
+        let dist = Vec2D.mag(vec);
+        console.log(dist)
+
+        const proj_a = Vec2D.mult(normal, pin_a_vel.dot(normal));
+        const proj_b = Vec2D.mult(normal, pin_b_vel.dot(normal));
+        const impulse = Vec2D.sub(proj_b, proj_a);
+
+        const correction_mag = dist - this.distance;
+        const correction = Vec2D.mult(normal, correction_mag);
+
+        // vap is a weird concept, maybe we can find something more clever
+        // the idea here is "if we push on this point mass how fast does it move"
+        // essentially the inertia at this pin on the object
+        const a_vap = this.find_vap(this.A, correction, pin_a);
+        const b_vap = this.find_vap(this.B, correction, pin_b);
+
+        const total_vap = a_vap + b_vap;
+        if(total_vap == 0)
+            return;
+
+        const theta = a_vap / total_vap;
+
+        const a_correction = Vec2D.mult(correction, theta);
+        const b_correction = Vec2D.mult(correction, 1 - theta);
+
+        const a_impulse = Vec2D.mult(impulse, this.A.mass * theta);
+        const b_impulse = Vec2D.mult(impulse, -this.B.mass * (1 - theta));
+
+        this.A.pos.sub(a_correction);
+        this.B.pos.add(b_correction);
+
+        this.apply_impulse(this.A, a_impulse, pin_a);
+        this.apply_impulse(this.B, b_impulse, pin_b);
+
+        this.A.constraint_ref?.apply_composite_body(); 
+        this.B.constraint_ref?.apply_composite_body(); 
+    }
+
+    apply_impulse(obj, impulse, r) {
+        const r_cross_i = Vec2D.cross(r, impulse);
+        if (obj.mass != Infinity)
+            obj.vel.sub(Vec2D.div(impulse, obj.mass));
+        if (obj.moi != Infinity)
+            obj.rot_vel -= r_cross_i / obj.moi;
+    }
+
+    find_vap(obj, impulse, r) {
+        const r_cross_i = Vec2D.cross(r, impulse);
+        let vel_impulse = Vec2D.div(impulse, obj.mass);
+        let rot_impulse = r_cross_i / obj.moi;
+        let normal = Vec2D.normalize(impulse);
+        let perp = Vec2D.normalize(new Vec2D(-r.y, r.x));
+        let dist = Vec2D.mag(r);
+        let total_impulse = Vec2D.add(vel_impulse, Vec2D.mult(perp, rot_impulse * dist));
+        // TODO: do we want to project onto normal here?
+        // const proj = Vec2D.mult(normal, pin_a_vel.dot(normal));
+        return Vec2D.mag(total_impulse);
+    }
+}
+
 class FixedConstraint {
     constructor(A, B, distance = null, a_target_angle = null, b_target_angle = null) {
         this.A = A;
@@ -554,7 +638,7 @@ class FixedConstraint {
         this.a_target_angle = a_target_angle ?? this.A.angle - rel_angle;
         this.b_target_angle = b_target_angle ?? this.B.angle - rel_angle;
         
-        this.distance_constraint = new DistanceConstraint(A, B, distance);
+        this.distance_constraint = new DistanceConstraintNonCOM(A, B, distance, new Vec2D(A.radius, 0), new Vec2D(B.radius, 0));
         this.update_composite_body();
     }
 
